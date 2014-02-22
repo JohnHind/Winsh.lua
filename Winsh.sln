@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lua", "Lua\Lua.vcxproj", "{68DBA24B-F850-4B81-B073-FD9FE28DA809}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Winsh", "Winsh\Winsh.vcxproj", "{4983E753-06BB-4935-A822-DA4CB341C334}"
+	ProjectSection(ProjectDependencies) = postProject
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809} = {68DBA24B-F850-4B81-B073-FD9FE28DA809}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		R(Max Con)|Win32 = R(Max Con)|Win32
+		R(Max Win)|Win32 = R(Max Win)|Win32
+		R(Std Con)|Win32 = R(Std Con)|Win32
+		R(Std Win)|Win32 = R(Std Win)|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.Debug|Win32.ActiveCfg = Debug|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.Debug|Win32.Build.0 = Debug|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Max Con)|Win32.ActiveCfg = Release|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Max Con)|Win32.Build.0 = Release|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Max Win)|Win32.ActiveCfg = Release|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Max Win)|Win32.Build.0 = Release|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Std Con)|Win32.ActiveCfg = Release|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Std Con)|Win32.Build.0 = Release|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Std Win)|Win32.ActiveCfg = Release|Win32
+		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Std Win)|Win32.Build.0 = Release|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.Debug|Win32.Build.0 = Debug|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Max Con)|Win32.ActiveCfg = Release (Max Con)|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Max Con)|Win32.Build.0 = Release (Max Con)|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Max Win)|Win32.ActiveCfg = Release (Max Win)|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Max Win)|Win32.Build.0 = Release (Max Win)|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Std Con)|Win32.ActiveCfg = Release (Std Con)|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Std Con)|Win32.Build.0 = Release (Std Con)|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Std Win)|Win32.ActiveCfg = Release (Std Win)|Win32
+		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Std Win)|Win32.Build.0 = Release (Std Win)|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
