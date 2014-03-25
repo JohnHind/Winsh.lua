@@ -14,6 +14,8 @@ Packing options are designed to avoid the need for installation and to be locati
 
 A runtime package containing several alternative pre-built binaries and documentation can be downloaded here:
 
+https://github.com/JohnHind/Winsh.lua/releases/tag/2.0.1
+
 The sources on this site can be built using Visual Studio 2010 or later, or probably in any C++ environment with some work. The sources comprise the following:
 
 Patched Lua sources and a project to build these into an object code library.
