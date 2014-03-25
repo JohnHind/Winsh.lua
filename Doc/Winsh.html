@@ -1902,7 +1902,7 @@ Lines which have an {{{=}}} character after the prompt and in front of an expres
 The ''Help'' menu contains commands to show various pieces of information including an inventory of resources available in the executable file. This information is supplied by functions defined in the '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource, which may be customised as required.
 </pre>
 </div>
-<div title="Introduction" creator="John Hind" modifier="John Hind" created="201005272040" modified="201402211438" tags="startup" changecount="10">
+<div title="Introduction" creator="John Hind" modifier="John Hind" created="201005272040" modified="201403240925" tags="startup" changecount="11">
 <pre>Winsh.lua is an advanced runtime for the [[Lua]] language on Windows. With the supplied libraries it is ideal for writing small, self-contained utilities with simple command line or graphical interfaces such as backup automation scripts, installers and portable application menus.
 
 Winsh.lua is compatible with all versions of Windows starting with Windows XP. However a few library features are only supported in later Windows versions. These are noted in this documentation and are designed to degrade as gracefully as possible.
@@ -1921,7 +1921,7 @@ Winsh.lua supports three alternative application models:
 The [[Interactive Console]] and [[Lua]] topics are good starting points for new users.
 
 ----
-This help file was created using the superb and innovative &quot;&quot;&quot;TiddlyWiKi&quot;&quot;&quot;: http://classic.tiddlywiki.com/.</pre>
+This document was created using the superb and innovative &quot;&quot;&quot;TiddlyWiKi&quot;&quot;&quot;: http://classic.tiddlywiki.com/.</pre>
 </div>
 <div title="JHBackstagePlugin" creator="John Hind" modifier="John Hind" created="201102041649" modified="201102152102" tags="systemConfig excludeLists excludePublished excludeSearch excludeMissing" changecount="9">
 <pre>/***
@@ -3000,9 +3000,9 @@ config.paramifiers.tag = {
 };
 //}}}</pre>
 </div>
-<div title="Menu Class" creator="John Hind" modifier="John Hind" created="201311231135" modified="201402211711" changecount="24">
+<div title="Menu Class" creator="John Hind" modifier="John Hind" created="201311231135" modified="201403241042" changecount="29">
 <pre>!menu = winsh.Menu([title] [, onshow] [, gutter])
-The Menu Class generates objects which represent menus of actions. Menu inherits from [[List Class]] and all List methods may be used to create and modify the menu list. The optional parameters initialise the pre-defined fields (see below). A string parameter initialises '''title''', a callable parameter initialises '''onshow''' and a boolean parameter '''gutter'''.
+The Menu Class generates objects which represent menus of actions. Menu inherits the methods of [[List Class]] and all List methods may be used to create and modify the menu list. However [[list:insert]] inserts Menu class objects as objects rather than as lists allowing sub-menus to be created. The optional parameters initialise some of the pre-defined fields (see below). A string parameter initialises '''title''', a callable parameter initialises '''onshow''' and a boolean parameter '''gutter'''.
 
 Each list item must have a value comprising one of the following:
 * A [[Command Class]] object representing a command which may be executed from the menu.
@@ -3010,13 +3010,15 @@ Each list item must have a value comprising one of the following:
 * A string &quot;-&quot; which causes a horizontal separator line to be drawn.
 * A string &quot;|&quot; which specifies a column split dividing the menu into two columns.
 * A string (not one of the above) which becomes a non-selectable menu item (heading) unless it exists in a column on its own, in which case it becomes a vertical side-bar label.
-The pre-defined (read-only) fields are as follows:
+The pre-defined fields are as follows:
 ;'''title'''
 :This string value is the menu text shown for a sub-menu. If a menu object is used to define a sub-menu and this field is missing the default text &quot;sub menu&quot; is used.
 ;'''onshow'''
 :This is an optional field and if present the value can be any callable Lua object (usually a function) which is called immediately prior to showing the menu and passed a single parameter, the Menu object. It can be used to modify the Menu or Command objects to vary the appearance and function of the menu that is shown to the user.
 ;'''gutter'''
 :If present this overrides the default handling which shows a gutter if any Command objects in the menu or any sub-menus have '''icon''' or boolean '''value''' fields and not otherwise. Set to boolean {{{true}}} to show the gutter always, or boolean {{{false}}} to hide it always (in which case icons will be ignored and boolean '''value''' will be rendered using text colour rather than checkmarks). The setting applies globally to the menu and all of its sub-menus, and the '''gutter''' key should be applied in the main Menu table (however '''gutter''' {{{true}}} in a sub-menu will have effect as long as there is no '''gutter''' {{{false}}} in a parent menu or a subsequent sub-menu).
+;'''disabled'''
+:This field is initialised {{{false}}}. It may be changed (usually in an '''onshow''' function). It only has effect for a menu used as a submenu within another menu. If it is true when the menu is shown, the title entry for the sub-menu is shown disabled and the menu itself is not shown.
 </pre>
 </div>
 <div title="Nested Sliders" creator="John Hind" modifier="John Hind" created="201102061601" modified="201105211433" tags="excludeLists excludePublished excludeSearch excludeMissing">
@@ -3821,14 +3823,15 @@ for sk in rk:subkeys() do print(sk) end
 [[key:deletevalue]] - Delete a named value of the current key.
 </pre>
 </div>
-<div title="Release 2.0" creator="John Hind" modifier="John Hind" created="201102271549" modified="201402181749" tags="imprint excludeLists" changecount="16">
+<div title="Release 2.0" creator="John Hind" modifier="John Hind" created="201102271549" modified="201403251041" tags="imprint excludeLists" changecount="26">
 <pre>|Name|Winsh|
 |Author|[[John Hind]]|
-|Version|2.0|
-|Copyright|&amp;copy;2012 [[John Hind]]|
-|Release Date|26th November 2012|
+|Version|2.0.1|
+|Copyright|&amp;copy;2014 [[John Hind]]|
+|Release Date|25th March 2014|
 {{H3{Release Notes}}}
-&gt;2.0 - Changed object model and added clipboard support.
+&gt;2.0.1 - Added {{{__whole}}} metafield for [[List Class]]. Used this to fix sub-menu insertion. Added {{{disabled}}} field to [[Menu Class]] (for sub-menus).
+&gt;2.0 - Changed object model and added clipboard support. Updated Lua core to 5.2.2. Changed name from Grunt to Winsh.
 &gt;1.2 - Updated the &quot;&quot;&quot;Self-Iterating&quot;&quot;&quot; Objects Lua patch, changed [[winsh.taskicon]].
 &gt;1.1 - Upgraded Lua core to 5.2.1.
 ''&lt;&lt;publish&gt;&gt;''</pre>
@@ -5166,7 +5169,7 @@ Example:
 
 %/&lt;&lt;tiddler {{'ShowPopup##'+('$1'=='$'+'1'?'info':'show')}} with: [[$1]] [[$2]] [[$3]] [[$4]] [[$5]] [[$6]]&gt;&gt;</pre>
 </div>
-<div title="Side-by-side Execution" creator="John Hind" modifier="John Hind" created="201005292130" modified="201402211459" changecount="4">
+<div title="Side-by-side Execution" creator="John Hind" modifier="John Hind" created="201005292130" modified="201403061230" changecount="5">
 <pre>This is like [[Command-line Execution]] except that no command-line is required. Winsh will look for a folder or file with the same name as its own executable and in the same folder, but with the extension {{{.lua}}} rather than {{{.exe}}}. Note that the filename of the Winsh Executable may be changed to reflect the application, allowing more than one script system to exist in the same folder.
 
 For example, assuming the following directory layout ({{{myapp.exe}}} being one of the [[Winsh Executables]] renamed):
@@ -5177,11 +5180,11 @@ C:\test\myapp.lua
 Executing {{{myapp.exe}}} will load and run {{{myapp.lua}}}. Alternatively, with the following layout:
 {{{
 C:\test\myapp.exe
-C:\test\myapp\start.lua
-C:\test\myapp\library1.lua
-C:\test\myapp\lib\library2.dll
+C:\test\myapp.lua\start.lua
+C:\test\myapp.lua\library1.lua
+C:\test\myapp.lua\lib\library2.dll
 }}}
-Then executing {{{myapp.exe}}} will load and run {{{myapp\start.lua}}} and that script may contain the following Lua statements:
+Then executing {{{myapp.exe}}} will load and run {{{myapp.lua\start.lua}}} and that script may contain the following Lua statements:
 {{{
 lib1 = require(&quot;library1&quot;)
 lib2 = require(&quot;lib.library2&quot;)
@@ -7687,10 +7690,14 @@ print(lst:concat(&quot;,&quot;))
 }}}
 </pre>
 </div>
-<div title="list:insert" creator="John Hind" modifier="John Hind" created="201005152140" modified="201312131731" changecount="6">
+<div title="list:insert" creator="John Hind" modifier="John Hind" created="201005152140" modified="201403241050" changecount="8">
 <pre>!list:insert(index, item)
 
-If ''item'' is a List object, the elements in this list are inserted into the list, otherwise, ''item'' is inserted as a single entry. The elements are inserted into the list starting at the given ''index''. Negative indexes are also supported with {{{-1}}} being the last item in the current List, and {{{0}}} meaning to add the new items at the end of the List. The original item at the specified ''index'', and all the subsequent items, are shifted after the inserted items.
+If ''item'' is a List object, the elements in this list are inserted into the list, otherwise, ''item'' is inserted as a single entry.
+
+The elements are inserted into the list starting at the given ''index''. Negative indexes are also supported with {{{-1}}} being the last item in the current List, and {{{0}}} representing the index after the last item in the current List. The original item at the specified ''index'', and all the subsequent items, are shifted after the inserted items.
+
+Expansion of inserted lists may be overridden for derived classes by providing a {{{__whole}}} metafield. If the object being inserted has this metafield and it tests {{{true}}}, then it is inserted as a single entry, the value being the object itself.
 {{{
 lst = List(&quot;one&quot;, &quot;two&quot;, &quot;three&quot;)
 lst:insert(-2, &quot;one.one&quot;)

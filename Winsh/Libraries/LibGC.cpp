@@ -10,11 +10,11 @@ WORD GcFirstMenuID = 0;				//The first Menu ID allocated when winsh.taskicon fir
 WORD GcLastMenuID = 0;				//The last Menu ID in the block allocated as above (0 means not done yet)
 WORD GcNRCid = 0;					//The ID of the Notify Icon Right-click message
 WORD GcNLCid = 0;					//The ID of the Notify Icon left-click message
-int GcRefRMenuTable = LUA_NOREF;		//The Registry Table key for the table used to define the Right task icon menu
-int GcRefLMenuTable = LUA_NOREF;     //The Registry Table key for the table used to define the Left task icon menu
-bool m_leftMenu = false;				//Is a menu enabled for notify icon left click?
-bool m_rightMenu = false;               //Is a menu enabled for notify icon right click?
-int GcNextKeyID = 1;					//The next HotKey ID available for allocation
+int GcRefRMenuTable = LUA_NOREF;	//The Registry Table key for the table used to define the Right task icon menu
+int GcRefLMenuTable = LUA_NOREF;    //The Registry Table key for the table used to define the Left task icon menu
+bool m_leftMenu = false;			//Is a menu enabled for notify icon left click?
+bool m_rightMenu = false;           //Is a menu enabled for notify icon right click?
+int GcNextKeyID = 1;				//The next HotKey ID available for allocation
 int GcCmdCount = 0;					//The number of times winsh.commandline has been used from Lua
 int GcRepAct = 0;					//Message code for first of two timer messages for setreport.
 
@@ -115,9 +115,13 @@ int gc_DoPrepMenu(lua_State* L, CMenuHandle m, int mn, WORD* id)
 			lua_getfield(L, -1, "title");		//|text|submenutab|menutab|...
 			CString n(lua_tostring(L, -1));
 			lua_pop(L, 1);						//|submenutab|menutab|...
+			lua_getfield(L, -1, "disabled");	//|da|submenutab|menutab|...
+			da = lua_toboolean(L, -1);
+			lua_pop(L, 1);						//|submenutab|menutab|...
 			HICON h = NULL;
 			CMenuHandle sm; sm.CreatePopupMenu();
 			UINT f = MF_POPUP; f |= (da? MF_GRAYED : MF_ENABLED);
+			if (bk) f |= MF_MENUBARBREAK; bk = false;
 			H->Menu(mn)->AppendCCMenu(m, f, (UINT_PTR)sm.m_hMenu, n, h);
 			if (!da) gt = gc_DoPrepMenu(L, sm, mn, id);	//Recursively call this routine to prepare the sub-menu
 			lua_pop(L, 1);						//|menutab|...
@@ -128,7 +132,7 @@ int gc_DoPrepMenu(lua_State* L, CMenuHandle m, int mn, WORD* id)
 			lua_getfield(L, -1, "title");		//|text|command|menutab|...
 			if (lua_isstring(L, -1)) n = CString(lua_tostring(L, -1));
 			lua_pop(L, 1);						//|command|menutab|...
-			lua_getfield(L, -1, "disabled");	//|df|command|menutab|...
+			lua_getfield(L, -1, "disabled");	//|da|command|menutab|...
 			da = lua_toboolean(L, -1);
 			lua_pop(L, 1);						//|command|menutab|...
 			HICON h = NULL;

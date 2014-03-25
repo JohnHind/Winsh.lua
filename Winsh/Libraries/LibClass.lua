@@ -169,7 +169,7 @@ do  -- Class 'List' (extends partial implementation in C)
 		if ip < 0 then ip = t + ip end
 		if ip == 0 then ip = t end
 		if ip < 1 or ip > t then error("Insert: index out of range") end
-		if T.istype(v, _C) then
+		if T.istype(v, _C) and not v.__whole then
 			local sv = #v
 			local p = t - ip
 			if sv <= p then
@@ -194,20 +194,20 @@ do  -- Class 'List' (extends partial implementation in C)
 			self[ip] = v
 		end
 	end
-        function _TID:remove(p1, p2)
-            T.checkmethod(self, _C)
-            local t = #self + 1
-            p1 = T.tonumber(p1 or t-1)
-            if p1 < 0 then p1 = t + p1 end
-            if p1 < 1 or p1 >= t then error("Remove: index out of range") end
-            p2 = T.tonumber(p2 or p1)
-            if p2 < 0 then p2 = t + p2 end
-            if p2 < p1 then p2 = p1 end
-            local d = p2 - p1 + 1
-            for i=p2+1, t-1 do self[i-d] = self[i] end
-            for i=t-1, t-d, -1 do self[i] = nil end
-        end
-        function _TID:reverse()
+	function _TID:remove(p1, p2)
+		T.checkmethod(self, _C)
+		local t = #self + 1
+		p1 = T.tonumber(p1 or t-1)
+		if p1 < 0 then p1 = t + p1 end
+		if p1 < 1 or p1 >= t then error("Remove: index out of range") end
+		p2 = T.tonumber(p2 or p1)
+		if p2 < 0 then p2 = t + p2 end
+		if p2 < p1 then p2 = p1 end
+		local d = p2 - p1 + 1
+		for i=p2+1, t-1 do self[i-d] = self[i] end
+		for i=t-1, t-d, -1 do self[i] = nil end
+	end
+	function _TID:reverse()
 		T.checkmethod(self, _C)
 		local e = #self
 		for i=1, e/2 do

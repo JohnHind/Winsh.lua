@@ -82,14 +82,14 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release (Max Win)|Win32'">$(Configuration)\</OutDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release (Std Win)|Win32'">$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release (Max Win)|Win32'">$(SolutionDir)Distro\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release (Std Win)|Win32'">$(SolutionDir)Distro\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release (Max Win)|Win32'">$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release (Std Win)|Win32'">$(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release (Max Win)|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release (Std Win)|Win32'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release (Max Con)|Win32'">$(Configuration)\</OutDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release (Std Con)|Win32'">$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release (Max Con)|Win32'">$(SolutionDir)Distro\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release (Std Con)|Win32'">$(SolutionDir)Distro\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release (Max Con)|Win32'">$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release (Std Con)|Win32'">$(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release (Max Con)|Win32'">false</LinkIncremental>

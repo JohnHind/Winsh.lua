@@ -160,19 +160,23 @@ END
 // Icon
 //
 
-// Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
+// The application icon - must be first in file, compiler sorts
+// alphabetically, letters before numbers:
+AA.WINSH                ICON                    "res\\lua-std.ico"
+
+// Numbered icons for console commands (menus):
 ID_EDIT_DELETE          ICON                    "res\\delete.ico"
-WINSH.LUA               ICON                    "res\\lua-std.ico"
-LOCK                    ICON                    "res\\lock.ico"
-LOCK2                   ICON                    "res\\lock48.ico"
-KEY                     ICON                    "res\\key.ico"
-SAFE                    ICON                    "res\\safe.ico"
 ID_EDIT_CUT             ICON                    "res\\cut.ico"
 ID_EDIT_COPY            ICON                    "res\\copy.ico"
 ID_EDIT_PASTE           ICON                    "res\\paste.ico"
 ID_EDIT_UNDO            ICON                    "res\\undo.ico"
 ID_HELP                 ICON                    "res\\help.ico"
+
+// Named icons are available to Grunt (freely add or remove):
+LOCK                    ICON                    "res\\lock.ico"
+LOCK2                   ICON                    "res\\lock48.ico"
+KEY                     ICON                    "res\\key.ico"
+SAFE                    ICON                    "res\\safe.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

@@ -16,12 +16,9 @@
 #define IDR_STATUS_PANE1                201
 #define IDR_STATUS_PANE2                202
 #define IDR_NOTIFY                      203
-#define IDI_ICON5                       204
 #define IDR_STATUS_PANE3                205
 #define IDR_STATUS_PANE4                206
 #define IDD_DIALOG_NAME                 208
-#define IDI_ICON1                       210
-#define IDI_ICON3                       212
 #define IDC_BUTTON_T_OK                 1000
 #define IDC_BUTTON_T_CAN                1001
 #define IDC_EDIT_T                      1002

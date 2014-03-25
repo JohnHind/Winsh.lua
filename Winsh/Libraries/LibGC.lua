@@ -2,10 +2,11 @@
 local T = ...
 local C = require("class")
 
-do  -- Class 'Menu' (inherits List)
+do  -- Class 'Menu' (inherits List methods, but is not a list)
 	local _TID, _PC = C.newmeta(C.List)
 	local _C = function(...)
 	    local o = _PC()
+		C.rawset(o, "disabled", false)
 		for i=1, 3 do
 			local x = select(i,...)
 			if not o.title and C.istype(x,'string') then
@@ -19,11 +20,12 @@ do  -- Class 'Menu' (inherits List)
 		C.setmetatable(o, _TID)
 		return o
 	end
-	C.rawset(_TID, "__tostring", function()
+	C.rawset(_TID, "__tostring", function(self)
 		return "Menu:" .. (self.title or "anon")
 	end)
-	C.rawset(_TID, "__iter", C.pairs)
+	C.rawset(_TID, "__iter", C.gettid(_PC).__iter)
 	C.rawset(_TID, "__newindex", C.gettid(_PC).__newindex)
+	C.rawset(_TID, "__whole", true)
 	T.Menu = _C
 end -- Class 'Menu'
 
