@@ -184,8 +184,8 @@ do  -- Class 'List' (extends partial implementation in C)
 				p = p + 1
 				for i=0, sv-p do self[t+i] = v[p+i] end
 				if t > ip then
-					local b = t + (sv - p)
-					for i=0, t-ip do self[b+i] = self[ip+i]; self[ip+i] = v[i+1] end
+					local b = t + (sv - p) + 1
+					for i=0, t-ip-1 do self[b+i] = self[ip+i]; self[ip+i] = v[i+1] end
 				end
 			end
 		else
