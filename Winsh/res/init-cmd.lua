@@ -1,122 +1,97 @@
 --Command Mode Initialisation
 --[[
 This chunk is executed to initialise the special environment
-table used to execute immediate commands. This table has a
-metatable indexing the Global Environment so it has read,
-but not direct write access to the Global Environment.
-Some specific fields may be defined as follows:
-'onhelp', 'onabout', 'oninventory', 'oncommandline': These
-must be functions which are run on selection of Help menu
-items.
-'onreportclear': Must be a function. Called when the report
-pane (lower pane) on the console is cleared.
-'_EQUAL': Must be a string. This overwrites the default
-handling of command lines beginning with '='. The string
-may include the token '!!' (possibly more than once) which
-gets replaced by the text following the '='. After this
-substitution, the string must be valid Lua code.
-'_PROMPT': Must be a string which overwrites the default
-command prompt ('>').
+table used to execute immediate commands.
 --]]
 
 _L = _ENV
 
+_PROMPT = ">"
+
 require = function(lib)
-  if package.loaded[lib] then return package.loaded[lib] end
-  local dl = package.preload[lib]
-  if type(dl) == "function" then
-    _L[lib] = dl(lib)
-    _G[lib] = nil
-    _G.package.loaded[lib] = nil
-  end
-  return _L[lib]
+  if _G.package.loaded[lib] then return _G.package.loaded[lib] end
+  return _G.require(lib)
 end
 
 debug = require("debug")
 
-local pad = function(s,w)
+local pad = function(s, w)
   local r = #s
-  if r >= w then return s .. "\t" end
-  r = w - r
-  local n = s
-  while r > 0 do
-	s = s .. "\t"
-	r = r - 4
-  end
-  return s
+  if r >= w then return s .. " " end
+  return s .. string.rep(" ", w - r)
 end
 
 onhelp = function()
-  local h = [=[
+  writehelp([=[
 Detailed documentation for Winsh.lua is in the file
 'Winsh.html' in the runtime distribution.
 For Lua documentation, see:
-http://www.lua.org/manual/5.2/
-http://www.lua.org/pil/contents.html
-Lines beginning with the command prompt '>' are executed
-immediately on pressing ENTER. Command lines can be
-repeated by placing the cursor anywhere in a line and
-pressing ENTER. Prefix a variable name or expression
-with '=' to display its value.
-The command prompt may be deleted to enter multi-line
-code. Press F5 to execute selected code or the entire
-contents if there is no selection.]=]
-  _G.print(expandhelp(h))
+  http://www.lua.org/manual/5.2/
+  http://www.lua.org/pil/contents.html
+Lines in the upper pane beginning with the command
+prompt '>' are executed immediately on pressing ENTER.
+Command lines can be repeated by placing the cursor
+anywhere in a line and pressing ENTER. Prefix a
+variable name or expression with '=' to display its
+value.
+Multi-line scripts may be entered in the lower pane,
+or a file may be dropped onto this pane. This script
+will be executed if it has changed prior to executing
+the command in the upper pane.]=])
 end
 
 onabout = function()
-  local a = [=[
+  writehelp([=[
 {productname}
 Version: {productversion} {specialbuild} {privatebuild}
 {legalcopyright}
-https://github.com/JohnHind/Winsh.lua
+  https://github.com/JohnHind/Winsh.lua
 
 Based on the Lua Programming Language
 By: {luaauthors}
 {luacopyright}
-http://www.lua.org/
+  http://www.lua.org/
 
 Uses Windows Template Library - WTL Version 9.0
 Copyright © 2014 Microsoft Corporation, WTL Team.
-http://sourceforge.net/projects/wtl/
+  http://sourceforge.net/projects/wtl/
 
 Open Source, free of charge and without warranty.
-See web sites for detailed licence and sources.]=]
-  _G.print(expandhelp(a))
+See web sites for detailed licence and sources.]=])
 end
 
 oninventory = function()
-  _G.print(expandhelp("{configuration}"))
-  _G.print(expandhelp("{subsystem}"))
-  _G.print("====LIBRARIES")
-  _G.print("(Libraries marked 'available' must be loaded using Lua 'require')")
+  writehelp("{configuration}")
+  writehelp("{subsystem}")
+  writehelp("====LIBRARIES")
+  writehelp("(Libraries marked 'available' must be loaded using Lua 'require')")
   for k, v in Table(getinventory("libraries")) do
       if package.loaded[k] then
-	    _G.print(pad(k,12) .. "[loaded]    " .. v)
+	    writehelp(pad(k,12) .. "[loaded]    " .. v)
 	  else
 	    if _L[k] then
-	      _G.print(pad(k,12) .. "[cmd-only]  " .. v)
+	      writehelp(pad(k,12) .. "[cmd-only]  " .. v)
 	    else
-	      _G.print(pad(k,12) .. "[available] " .. v)
+	      writehelp(pad(k,12) .. "[available] " .. v)
 	    end
 	  end
   end
-  _G.print("====SCRIPTS")
+  writehelp("====RESOURCE SCRIPTS")
   for k, v in Table(getinventory("scripts")) do
-      if type(v) == "string" then
-          _G.print(pad(k,12) .. v)
-      else
-          _G.print(k)
-      end
+      writehelp(pad(k,12) .. "|" .. v)
   end
-  _G.print("====ICONS")
+  writehelp("====SCRIPT FILES")
+  for k, v in Table(getinventory("files")) do
+      writehelp(pad(k,12) .. "|" .. v)
+  end
+  writehelp("====ICONS")
   for k, v in Table(getinventory("icons")) do
-      _G.print(pad(k,12) .. v)
+      writehelp(pad(k,12) .. "[" .. v .. "]")
   end
 end
 
 oncommandline = function()
-  local h = [=[
+  writehelp([=[
 {exename} [options] [scriptname [args]]
 OPTIONS:
 -e'lua':  Compiles and executes 'lua' as a source code string.
@@ -136,8 +111,7 @@ the script using the Lua varargs mechanism. A parameter that is
 valid as a number string becomes a number, 'true' or 'false'
 becomes a boolean, 'nil' becomes nil and anything else becomes
 a string. Interpretation as a string may be forced by enclosing
-in quote marks.]=]
-  _G.print(expandhelp(h))
+in quote marks.]=])
 end
 
 onreportclear = function()
@@ -174,11 +148,11 @@ eprint = function(v,l,r)
 	if v then s = "true" else s = "false" end
   elseif (t == "table") and not (v == tab) then
     if r then
-      print(l.." = {")
+      dprint(l.." = {")
       for k,x in class.pairs(v) do
-        print("["..eprint(k).."] = "..vprint(x,l,k)..";")
+        dprint("["..eprint(k).."] = "..vprint(x,l,k)..";")
       end
-      print("}")
+      dprint("}")
       return
     else
 	  if not tab then tab = {} end
@@ -192,4 +166,73 @@ eprint = function(v,l,r)
   if l then return l.." = "..s else return s end
 end
 
-_EQUAL = [==[return eprint((!!),[=[!!]=],true)]==]
+local prepcommand = function(str, ev)
+    str = str:gsub("^%s*(.-)%s*$", "%1")
+	if str:sub(1,1) == "=" then
+	  ev = true
+      str = str:sub(2):gsub("^%s*(.-)%s*$", "%1")
+	end
+	if ev then
+	  str = "return(eprint((" .. str .. "),[=[" .. str .. "]=],true))"
+	end
+	return str
+end
+
+local exec = function(f, e)
+  if f then f, e = lua.pcall(f) end
+  if not f then e = "ERROR:" .. e end
+  if type(e) == "string" then dprint(e) end
+  return f
+end
+
+onevaluate = function(str, st)
+  local f, e, s
+  if str:sub(1, #_PROMPT) == _PROMPT then
+    str = prepcommand(str:sub(2))
+    console('prep', str)
+	f, e = console('script')
+	if f ~= false then
+	  dprint("**Executing script from lower pane:")
+	  exec(f, e)
+	end
+	if #str > 0 then
+	  dprint("**Executing command line:")
+      exec(lua.load(str, "CommandPane", 't', _L))
+	end
+    console('prompt')
+	return
+  elseif st then
+    s, st = str:match("^ERROR:%s*([^:]+):(%d+):")
+	if s and st then
+	  st = tonumber(st)
+	  str = s
+	  if str == [=[String-[ScriptPane]]=] then
+		console('line', st)
+		return
+      elseif str == [=[[string "CommandPane"]]=] then
+		console('command')
+		return
+	  elseif str == [=[[string "Evaluation"]]=] then
+		return
+	  end
+	else
+	  str = str:match("^%-%-%s*([^|]+)")
+      str = str:gsub("^%s*(.-)%s*$", "%1")
+	  if not str then return end
+	end
+  end
+  if str:sub(1,7) == "http://" or str:sub(1,8) == "https://" or str:sub(1,4) == "www." then
+    console('url',str)
+	return
+  end
+  if not console('open', str, st) then
+    str = prepcommand(str, true)
+    f, e = lua.load(str, "Evaluation", 't', _L)
+	if f then
+	  console('prep')
+	  dprint("**Evaluating selection:")
+	  exec(f, e)
+	  console('prompt')
+	end
+  end
+end

@@ -762,8 +762,8 @@ int task_ApplicationWindowState(lua_State* L)
 // R1: Boolean - true if the application was closed.
 static int task_ApplicationClose(lua_State* L)
 {
-	WINSH_LUA(2)
 	static const char* fk [] = {"app","force",NULL};
+	WINSH_LUA(2)
 	int nw = -1; CWindow c;
 	if (!task_AppCheck(L, TRUE)) return 0;
 	lua_settop(L, 2);
@@ -940,19 +940,16 @@ static int app_Construct(lua_State* L)
 	{	// Application object for a task to be started later:
 		lua_settop(L, 2);
 		lua_newtable(L);									//|T|P2|P1
-		CString cl1(luaL_optstring(L, 1, "%ComSpec%"));
-		CString cl2("");
-		ExpandEnvironmentStrings(cl1.GetBuffer(cl1.GetLength()), cl2.GetBuffer(32767), 32767);
-		cl1.ReleaseBuffer(); cl2.ReleaseBuffer();
-		luaX_pushstring(L, cl2);							//|C|T|P2|P1
+		CPathString cl1(luaL_optstring(L, 1, "%ComSpec%"));
+        cl1.ExpandEnvironment();
+		luaX_pushstring(L, cl1);							//|C|T|P2|P1
 		lua_setfield(L, -2, "Command");					    //|T|P2|P1
-		cl1.Empty(); cl2.Empty();
+		cl1.Empty();
 		if (lua_isstring(L, 2))
 		{
 			cl1 = CString(lua_tostring(L, 2));
-			ExpandEnvironmentStrings(cl1.GetBuffer(cl1.GetLength()), cl2.GetBuffer(32767), 32767);
-			cl1.ReleaseBuffer(); cl2.ReleaseBuffer();
-			luaX_pushstring(L, cl2);						//|D|T|P2|P1
+			cl1.ExpandEnvironment();
+			luaX_pushstring(L, cl1);						//|D|T|P2|P1
 			lua_setfield(L, -2, "Directory");				//|T|P2|P1
 		}
 		lua_remove(L, 1);
@@ -1131,8 +1128,8 @@ static int task_Applications(lua_State* L)
 // R1: Process ID (number) or nil.
 static int task_Application(lua_State* L)
 {
-	WINSH_LUA(2)
 	static const char* k [] = {"prefix","suffix","title","order","active","cbowner",NULL};
+	WINSH_LUA(2)
 	HWND h; DWORD p;
 	lua_settop(L, 2);
 	int x = luaL_checkoption(L, 1, "active", k);

@@ -46,7 +46,7 @@ do  -- Class 'Frame'
 		if not (self._w and self._h) then error("place operation requires an area") end
 		local l, t, w, h
 		local fl, ft, fw, fh
-		local ke = ke or "lefttop"
+		local ke = ke or "center"
 		if fr then
 		  C.checkmethod(fr, _F)
 		  fl, ft = fr._l, fr._t

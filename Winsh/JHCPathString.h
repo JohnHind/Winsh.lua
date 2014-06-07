@@ -37,13 +37,15 @@ public:
 	int PathCommonPrefix(CString& p) {int r = ::PathCommonPrefix(LockBuffer(), p.LockBuffer(), NULL); ReleaseBuffer(); p.ReleaseBuffer(); return r;}
 	// Compacts the path for display in the specified character width
 	BOOL PathCompactPath(UINT width) {CPathString t; BOOL r = ::PathCompactPathEx(t.GetBufferSetLength(MAX_PATH), LockBuffer(), width, 0); t.ReleaseBuffer(); ReleaseBuffer(); Empty(); *this = t.m_pchData; return r;}
+	// Compacts the path for display in the specified character width
+	BOOL PathCompactPath(HDC dc, UINT width) {BOOL r = ::PathCompactPath(dc, this->GetBuffer(MAX_PATH), width); return r;}
 	// Returns true if the path exists as a directory or file
 	BOOL PathFileExists(void) {BOOL r = ::PathFileExists(LockBuffer()); ReleaseBuffer(); return r;}
-	// Returns a new CString containing the file extension (or empty string)
+	// Returns a new CPathString containing the file extension (or empty string)
 	CPathString PathFindExtension(void) {CPathString r(::PathFindExtension(LockBuffer())); ReleaseBuffer(); return r;}
-	// Returns a new CString containing the file name part (with any extension)
+	// Returns a new CPathString containing the file name part (with any extension)
 	CPathString PathFindFileName(void) {CPathString r(::PathFindFileName(LockBuffer())); ReleaseBuffer(); return r;}
-	// Returns a new CString containing the path minus the first component and seperator
+	// Returns a new CPathString containing the path minus the first component and seperator
 	CPathString PathFindNextComponent(void) {CPathString r(::PathFindNextComponent(LockBuffer())); ReleaseBuffer(); return r;}
 	// Returns the drive number (0 = A) of the drive specified on the path, or -1
 	int PathGetDriveNumber(void) {int r = ::PathGetDriveNumber(LockBuffer()); ReleaseBuffer(); return r;}
@@ -108,4 +110,53 @@ public:
 		return FALSE;
 	}
 
+	// Expands any environment strings in the path string (works for any string)
+	void ExpandEnvironment(void)
+	{
+		DWORD sz = 128;
+		CPathString n((TCHAR)0, sz);
+		DWORD sy = ExpandEnvironmentStrings(m_pchData, n.GetBuffer(sz), sz);
+		n.ReleaseBuffer();
+		if (sy > sz) {ExpandEnvironmentStrings(m_pchData, n.GetBuffer(sy), sy); n.ReleaseBuffer();}
+		*this = n.m_pchData;
+	}
+
+	// Replaces any matching path part with the corresponding environment string.
+	// Works for: %ALLUSERSPROFILE%; %APPDATA%; %COMPUTERNAME%; %ProgramFiles%; %SystemRoot%; %SystemDrive%; %USERPROFILE%
+	void UnExpandEnvironment(void)
+	{
+		CPathString n((TCHAR)0, MAX_PATH);
+		PathUnExpandEnvStrings(m_pchData, n.GetBuffer(MAX_PATH), MAX_PATH);
+		n.ReleaseBuffer();
+        *this = n.m_pchData;
+	}
+
+	// Trys to build a complete directory path iteratively. If the last section is a directory, the string
+	// must terminate with a backslash, otherwise the last section is assumed to be a file and is not created.
+	BOOL CreatePath(void)
+	{
+		CPathString y; int p;
+		CPathString x(m_pchData);
+		x.PathStripToRoot();
+		y = PathFindNextComponent();
+		while (TRUE) {
+			if (!x.PathIsDirectory()) return FALSE;
+			p = y.FindOneOf(TEXT("\\/"));
+			if (p < 1) break;
+			x.PathAppend(y.Left(p));
+			y = y.PathFindNextComponent();
+			if (!x.PathIsDirectory()) CreateDirectory(x, NULL);
+		}
+		return TRUE;
+	}
+
+	// Returns TRUE if the path appears to be a URL.
+	BOOL IsURL(void)
+	{
+		BOOL r = FALSE;
+		CPathString x(*this);
+		x.MakeUpper(); x.TrimLeft(TEXT(" \"\r\n\t[")); x.TrimRight(TEXT(" \"\r\n\t]"));
+		if ((x.Find(TEXT("HTTP://")) == 0) || (x.Find(TEXT("HTTPS://")) == 0) || (x.Find(TEXT("WWW.")) == 0)) r = TRUE;
+		return r;
+	}
 };

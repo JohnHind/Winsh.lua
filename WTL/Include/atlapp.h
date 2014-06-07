@@ -58,7 +58,7 @@
   #pragma comment(lib, "comctl32.lib")
 #endif
 
-#if defined(_SYSINFOAPI_H_) || defined(_WTL_USE_VERSION_HELPERS)
+#if defined(_SYSINFOAPI_H_) && defined(NOT_BUILD_WINDOWS_DEPRECATE) && (_WIN32_WINNT >= 0x0501)
   #include <VersionHelpers.h>
 #endif
 
@@ -220,7 +220,7 @@ inline int WINAPI lstrlenA(LPCSTR lpszString)
   {
 	if(lpstrDest == NULL || lpstrSrc == NULL || nLength <= 0)
 		return NULL;
-	int nLen = min(lstrlen(lpstrSrc), nLength - 1);
+	int nLen = __min(lstrlen(lpstrSrc), nLength - 1);
 	LPTSTR lpstrRet = (LPTSTR)memcpy(lpstrDest, lpstrSrc, nLen * sizeof(TCHAR));
 	lpstrDest[nLen] = 0;
 	return lpstrRet;
@@ -239,7 +239,7 @@ inline int WINAPI lstrlenA(LPCSTR lpszString)
   {
 	if(lpstrDest == NULL || lpstrSrc == NULL || nLength <= 0)
 		return NULL;
-	int nLen = min(lstrlenA(lpstrSrc), nLength - 1);
+	int nLen = __min(lstrlenA(lpstrSrc), nLength - 1);
 	LPSTR lpstrRet = (LPSTR)memcpy(lpstrDest, lpstrSrc, nLen * sizeof(char));
 	lpstrDest[nLen] = 0;
 	return lpstrRet;
@@ -303,6 +303,20 @@ static CWndClassInfo& GetWndClassInfo() \
 
 ///////////////////////////////////////////////////////////////////////////////
 // Global support for using original VC++ 6.0 headers with WTL
+
+#if (_MSC_VER < 1300) && !defined(_WIN32_WCE)
+  #ifndef REG_QWORD
+    #define REG_QWORD	11
+  #endif
+
+  #ifndef BS_PUSHBOX
+    #define BS_PUSHBOX	0x0000000AL
+  #endif
+
+  struct __declspec(uuid("000214e6-0000-0000-c000-000000000046")) IShellFolder;
+  struct __declspec(uuid("000214f9-0000-0000-c000-000000000046")) IShellLinkW;
+  struct __declspec(uuid("000214ee-0000-0000-c000-000000000046")) IShellLinkA;
+#endif // (_MSC_VER < 1300) && !defined(_WIN32_WCE)
 
 #ifndef _ATL_NO_OLD_HEADERS_WIN64
 #if !defined(_WIN64) && (_ATL_VER < 0x0700)
@@ -411,6 +425,60 @@ static CWndClassInfo& GetWndClassInfo() \
 
 #endif // !defined(_WIN64) && (_ATL_VER < 0x0700)
 #endif // !_ATL_NO_OLD_HEADERS_WIN64
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Global support for using original VC++ 7.x headers with WTL
+
+#if (_MSC_VER >= 1300) && (_MSC_VER < 1400)
+
+  #ifndef BS_PUSHBOX
+    #define BS_PUSHBOX	0x0000000AL
+  #endif
+
+  #pragma warning(disable: 4244)   // conversion from 'type1' to 'type2', possible loss of data
+
+#endif // (_MSC_VER >= 1300) && (_MSC_VER < 1400)
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Global support for old SDK headers
+
+#ifndef BTNS_BUTTON
+  #define BTNS_BUTTON	TBSTYLE_BUTTON
+#endif
+
+#ifndef BTNS_SEP
+  #define BTNS_SEP	TBSTYLE_SEP
+#endif
+
+#ifndef BTNS_CHECK
+  #define BTNS_CHECK	TBSTYLE_CHECK
+#endif
+
+#ifndef BTNS_GROUP
+  #define BTNS_GROUP	TBSTYLE_GROUP
+#endif
+
+#ifndef BTNS_CHECKGROUP
+  #define BTNS_CHECKGROUP	TBSTYLE_CHECKGROUP
+#endif
+
+#if (_WIN32_IE >= 0x0300)
+  #ifndef BTNS_DROPDOWN
+    #define BTNS_DROPDOWN	TBSTYLE_DROPDOWN
+  #endif
+#endif
+
+#if (_WIN32_IE >= 0x0400)
+  #ifndef BTNS_AUTOSIZE
+    #define BTNS_AUTOSIZE	TBSTYLE_AUTOSIZE
+  #endif
+
+  #ifndef BTNS_NOPREFIX
+    #define BTNS_NOPREFIX	TBSTYLE_NOPREFIX
+  #endif
+#endif
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -602,6 +670,10 @@ inline BOOL AtlInitCommonControls(DWORD dwFlags)
   #define NONCLIENTMETRICS_V1_SIZE   _SIZEOF_STRUCT(NONCLIENTMETRICS, lfMessageFont)
 #endif // !defined(_WIN32_WCE) && (WINVER >= 0x0600) && !defined(NONCLIENTMETRICS_V1_SIZE)
 
+#if !defined(_WIN32_WCE) && (_WIN32_WINNT >= 0x0501) && !defined(TTTOOLINFO_V2_SIZE)
+  #define TTTOOLINFO_V2_SIZE   _SIZEOF_STRUCT(TTTOOLINFO, lParam)
+#endif // !defined(_WIN32_WCE) && (_WIN32_WINNT >= 0x0501) && !defined(TTTOOLINFO_V2_SIZE)
+
 #endif // !_WTL_NO_RUNTIME_STRUCT_SIZE
 
 namespace RunTimeHelper
@@ -746,6 +818,16 @@ namespace RunTimeHelper
 #endif // !defined(_WTL_NO_RUNTIME_STRUCT_SIZE) && (WINVER >= 0x0600)
 		return nSize;
 	}
+
+	inline int SizeOf_TOOLINFO()
+	{
+		int nSize = sizeof(TOOLINFO);
+#if !defined(_WTL_NO_RUNTIME_STRUCT_SIZE) && (_WIN32_WINNT >= 0x0501)
+		if(!IsVista())
+			nSize = TTTOOLINFO_V2_SIZE;
+#endif // !defined(_WTL_NO_RUNTIME_STRUCT_SIZE) && (_WIN32_WINNT >= 0x0501)
+		return nSize;
+	}
 #endif // !_WIN32_WCE
 };
 
@@ -843,7 +925,7 @@ namespace SecureHelper
 		}
 		else if(cchCount == _TRUNCATE)
 		{
-			cchCount = min(cchDest - 1, size_t(lstrlenA(lpstrSrc)));
+			cchCount = __min(cchDest - 1, size_t(lstrlenA(lpstrSrc)));
 			nRet = STRUNCATE;
 		}
 		else if(cchDest <= cchCount)
@@ -870,7 +952,7 @@ namespace SecureHelper
 		}
 		else if(cchCount == _TRUNCATE)
 		{
-			cchCount = min(cchDest - 1, size_t(lstrlenW(lpstrSrc)));
+			cchCount = __min(cchDest - 1, size_t(lstrlenW(lpstrSrc)));
 			nRet = STRUNCATE;
 		}
 		else if(cchDest <= cchCount)
@@ -957,9 +1039,10 @@ namespace SecureHelper
 		return _vstprintf_s(lpstrBuff, cchBuff, lpstrFormat, args);
 #else
 		cchBuff;   // Avoid unused argument warning
-#pragma warning(disable: 4996)
+  #pragma warning(push)
+  #pragma warning(disable: 4996)
 		return _vstprintf(lpstrBuff, lpstrFormat, args);
-#pragma warning(default: 4996)
+  #pragma warning(pop)
 #endif
 	}
 
@@ -1076,6 +1159,39 @@ namespace MinCrtHelper
 #endif // _ATL_MIN_CRT
 	}
 }; // namespace MinCrtHelper
+
+
+///////////////////////////////////////////////////////////////////////////////
+// GenericWndClass - generic window class usable for subclassing
+
+// Use in dialog templates to specify a placeholder to be subclassed
+// Specify as a custom control with class name WTL_GenericWindow
+// Call Rregister() before creating dialog (for example, in WinMain)
+namespace GenericWndClass
+{
+	inline LPCTSTR GetName()
+	{
+		return _T("WTL_GenericWindow");
+	}
+
+	inline ATOM Register()
+	{
+		WNDCLASSEX wc = { sizeof(WNDCLASSEX) };
+		wc.lpfnWndProc = ::DefWindowProc;
+		wc.hInstance = ModuleHelper::GetModuleInstance();
+		wc.hCursor = ::LoadCursor(NULL, IDC_ARROW);
+		wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+		wc.lpszClassName = GetName();
+		ATOM atom = ::RegisterClassEx(&wc);
+		ATLASSERT(atom != 0);
+		return atom;
+	}
+
+	inline BOOL Unregister()   // only needed for DLLs or tmp use
+	{
+		return ::UnregisterClass(GetName(), ModuleHelper::GetModuleInstance());
+	}
+}; // namespace GenericWndClass
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1327,6 +1443,7 @@ using ATL::CTempBuffer;
   #endif
 #endif
 
+#pragma warning(push)
 #pragma warning(disable: 4284)   // warning for operator ->
 
 template<typename T, int t_nFixedBytes = 128>
@@ -1381,7 +1498,7 @@ private:
 	BYTE m_abFixedBuffer[t_nFixedBytes];
 };
 
-#pragma warning(default: 4284)
+#pragma warning(pop)
 
 #endif // !(_ATL_VER >= 0x0700)
 
@@ -1908,6 +2025,7 @@ public:
 		return ERROR_SUCCESS;
 	}
 
+#ifndef _WIN32_WCE
 	LONG QueryQWORDValue(LPCTSTR pszValueName, ULONGLONG& qwValue)
 	{
 		ATLASSERT(m_hKey != NULL);
@@ -1922,6 +2040,7 @@ public:
 
 		return ERROR_SUCCESS;
 	}
+#endif
 
 	LONG QueryStringValue(LPCTSTR pszValueName, LPTSTR pszValue, ULONG* pnChars)
 	{

@@ -108,10 +108,9 @@ public:
 	// Sets the Reporting Mode. Parameters r and e are bitmaps using the ERM
 	// defines above.
 
-	virtual BOOL SetFile(LPCTSTR fn, BOOL clr = FALSE) = 0;
-	// Sets the Report File. fn is the filename, clr is true to clear the file
-	// if it exists. Returns true if the file already existed or could not be
-	// created.
+	virtual BOOL SetFile(LPCTSTR fn, UINT opt = 0) = 0;
+	// Sets the Report File. fn is the filename, opt is a bit set containing options.
+	// Returns true if the file already existed or could not be created.
 
 	virtual TCHAR ReadConsole() = 0;
 	// Does nothing unless the ReportMode is 3 in which case waits for and returns

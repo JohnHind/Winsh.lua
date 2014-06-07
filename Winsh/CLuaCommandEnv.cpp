@@ -101,34 +101,41 @@ BOOL CALLBACK _ResIconsEnum(HMODULE hm, LPCTSTR ty, LPTSTR nm, LONG_PTR lp)
 }
 
 // Return inventory information
-static const char* inventorykeys [] = {"libraries", "scripts", "icons", NULL};
 static int luaX_GetInventory(lua_State* L)
 {
+    static const char* keys [] = {"libraries", "scripts", "files", "icons", NULL};
 	WINSH_LUA(4)
-	int opt = luaL_checkoption(L, 1, "libraries", inventorykeys);
-	if (opt == 0)
-	{
-		H->GetInventory(INV_KEY_EXE);
-	}
-	else if (opt == 1)
-	{
-		H->GetInventory(INV_KEY_RES);
-	}
-	else //if (opt == 2)
-	{
+	int k = luaL_checkoption(L, 1, "libraries", keys);
+	switch (k) {
+	case 3:
 		lua_newtable(L);
 		EnumResourceNames(_Module.GetResourceInstance(), RT_GROUP_ICON, _ResIconsEnum, (LONG_PTR)L);
+		break;
+	default:
+		H->GetInventory(k);
+		break;
 	}
 	return 1;
 }
 
+// Write a string, always to the GUI debug console.
+static int luaX_DebugPrint(lua_State* L)
+{
+	WINSH_LUA(1);
+	CString s(luaL_checkstring(L, 1));
+	H->WriteMessage(s,TRUE,TRUE);
+	return 0;
+}
+
 // Expand a help string substituting some configuration variables.
-static int luaX_ExpandHelp(lua_State* L)
+static int luaX_WriteHelp(lua_State* L)
 {
 	WINSH_LUA(1);
 	CString appfile(H->GetExePath());
     appfile += H->GetExeName() + CString(".EXE");
-	CString s(luaL_checkstring(L, 1));
+	CString s(TEXT("-- "));
+	s += CString(luaL_checkstring(L, 1));
+	lua_settop(L, 0);
 	s.Replace(CString("{exename}"), H->GetExeName());
 	s.Replace(CString("{startname}"), H->GetInitName());
 	s.Replace(CString("{luaext}"), H->GetLuaExt());
@@ -149,8 +156,9 @@ static int luaX_ExpandHelp(lua_State* L)
 	s.Replace(CString("{productname}"), getversioninfo(appfile, CString("ProductName")));
 	s.Replace(CString("{productversion}"), getversioninfo(appfile, CString("ProductVersion")));
 	s.Replace(CString("{specialbuild}"), getversioninfo(appfile, CString("SpecialBuild")));
+	s.Replace(TEXT("\n"), TEXT("\r\n-- "));
 	luaX_pushstring(L, s);
-	return 1;
+	return luaX_DebugPrint(L);
 }
 
 CLuaCommandEnv::CLuaCommandEnv(lua_State* LL)
@@ -161,8 +169,10 @@ CLuaCommandEnv::CLuaCommandEnv(lua_State* LL)
 	lua_newtable(L);								//|T
 	lua_pushcfunction(L, luaX_GetInventory);		//|F|T
 	lua_setfield(L, -2, "getinventory");			//|T
-	lua_pushcfunction(L, luaX_ExpandHelp);			//|F|T
-	lua_setfield(L, -2, "expandhelp");				//|T
+	lua_pushcfunction(L, luaX_DebugPrint);			//|F|T
+	lua_setfield(L, -2, "dprint");					//|T
+	lua_pushcfunction(L, luaX_WriteHelp);			//|F|T
+	lua_setfield(L, -2, "writehelp");				//|T
 	lua_newtable(L);								//|M|T
 	lua_pushglobaltable(L);							//|G|M|T
 	lua_setfield(L, -2, "__index");					//|M|T
@@ -210,15 +220,56 @@ BOOL CLuaCommandEnv::CheckCmdField(LPCTSTR nm, int type /*=-1*/)
 }
 
 CString CLuaCommandEnv::GetCmdVar(LPCTSTR nm, LPCTSTR def)
-{
+{													//|
 	lua_checkstack(L, 2);
-	lua_pushglobaltable(L);							//|G
-	lua_rawgeti(L, LUA_REGISTRYINDEX, m_refCC);		//|C|G
-	lua_remove(L, -2);								//|C
-	luaX_pushstring(L, nm);							//|N|C
-	lua_gettable(L, -2);							//|E|C
+	lua_rawgeti(L, LUA_REGISTRYINDEX, m_refCC);		//|C|
+	luaX_pushstring(L, nm);							//|N|C|
+	lua_gettable(L, -2);							//|E|C|
 	CString eq(def);
 	if (lua_isstring(L, -1)) eq = CString(lua_tostring(L, -1));
-	lua_pop(L, 2);
+	lua_pop(L, 2);									//|
 	return eq;
 }
+
+int CLuaCommandEnv::GetCmdVar(LPCTSTR nm)
+{
+	lua_checkstack(L, 2);
+	lua_rawgeti(L, LUA_REGISTRYINDEX, m_refCC);		//|C|
+	luaX_pushstring(L, nm);							//|N|C|
+	lua_gettable(L, -2);							//|E|C|
+	lua_remove(L, -2);								//|E|
+	return 1;
+}
+
+void CLuaCommandEnv::SetCmdVar(LPCTSTR nm)
+{													//|V|
+	lua_checkstack(L, 3);
+	lua_rawgeti(L, LUA_REGISTRYINDEX, m_refCC);		//|C|V|
+	luaX_pushstring(L, nm);							//|N|C|V|
+	lua_pushvalue(L, -3);							//|V|N|C|V|
+	lua_settable(L, -3);							//|C|V|
+	lua_pop(L, 2);									//|
+}
+
+CString CLuaCommandEnv::FindLuaLib(LPCTSTR name)
+{
+	CString n(name);
+	lua_checkstack(L, 4);
+	lua_getglobal(L, "package");
+	if (lua_istable(L, -1)) {
+		lua_getfield(L, -1, "searchpath");
+		luaX_pushstring(L, name);
+		lua_getfield(L, -3, "path");
+		if ((lua_isfunction(L, -3) && (lua_isstring(L, -1)))) {
+			lua_call(L, 2, 1);
+			if (lua_isstring(L, -1)) {
+				n = CString(lua_tostring(L, -1));
+			} else {
+				n = CString("");
+			}
+		}
+		lua_pop(L, 3);
+	}
+	return n;
+}
+

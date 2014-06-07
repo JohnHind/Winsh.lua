@@ -6,6 +6,7 @@
 #include "..\resource.h"
 #include "LibTime.h"
 #include "WtsApi32.h"
+#include "Cfgmgr32.h"
 #include "..\CNameDlg.h"
 #include "..\JHCPathString.h"
 #include <dbt.h>
@@ -1132,12 +1133,12 @@ LRESULT shell_drvmsgproc(UINT id, CMsgTrap* t, CWindow* w, UINT& msg, WPARAM& wp
 #include <Winioctl.h>
 #define bufsz (sizeof(VOLUME_DISK_EXTENTS) + (10 * sizeof(DISK_EXTENT)))
 
-//P1 (String-shppfn, opt): The type of name to be returned.
+//P1 (String, 'shppfn', opt): The type of name to be returned.
 //P2 (Number, opt): The ordinal of the physical name to be returned when there is more than 1.
 //R1 (String, Number): The display name. If there is more than one physical name, returns a number, the count of names.
-static const char* shppfn [] = {"letter", "root", "volspec", "label", "display", "volguid", "logical", "physical", "partition", "ntpart", NULL};
 static int LuaDriveName(lua_State* L)
 {
+    static const char* shppfn [] = {"letter", "root", "volspec", "label", "display", "volguid", "logical", "physical", "partition", "ntpart", NULL};
 	WINSH_LUA(3)
 	luaC_checkmethod(L);
 	int sw = luaL_checkoption(L, 2, "letter", shppfn);
@@ -1703,12 +1704,12 @@ int shell_PowerStatus(lua_State* L)
 }
 
 // Allows the shudown options to be invoked programatically.
-// P1: String (shutdownset). The operation to be performed - defaults to "shutdown".
+// P1: String, 'shutdownset'. The operation to be performed - defaults to "shutdown".
 // P2: Boolean (optional). If specified and boolean true, the shutdown is forced even if an application refuses.
 // R1: Boolean. True if the operation suceeds.
-static const char* shutdownset [] = {"shutdown", "switchuser", "logoff", "lock", "restart", "sleep", "hibernate", NULL};
 int shell_Shutdown(lua_State* L)
 {
+    static const char* shutdownset [] = {"shutdown", "switchuser", "logoff", "lock", "restart", "sleep", "hibernate", NULL};
 	WINSH_LUA(1)
 	HANDLE hToken; 
 	TOKEN_PRIVILEGES tkp;
@@ -1781,6 +1782,16 @@ int shell_Shutdown(lua_State* L)
 	return 1;
 }
 
+int shell_ScanDevices(lua_State* L)
+{
+	WINSH_LUA(1)
+    DEVINST devRoot;
+	int r = CM_Locate_DevNode_Ex(&devRoot,NULL,CM_LOCATE_DEVNODE_NORMAL,NULL);
+	if (r == CR_SUCCESS) r = CM_Reenumerate_DevNode_Ex(devRoot, 0, NULL); 
+	lua_pushinteger(L, r);
+ 	return 1;
+}
+
 #pragma endregion
 
 // =================================================================================================
@@ -1791,6 +1802,7 @@ LUASHLIB_API int LUASHLIB_NGEN(luaopen_)(lua_State* L)
 		{"powerstatus", shell_PowerStatus},
 		{"platform", shell_Platform},
 		{"shutdown", shell_Shutdown},
+		{"scandevices", shell_ScanDevices},
 		{NULL, NULL}
 	};
 

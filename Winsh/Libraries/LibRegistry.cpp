@@ -140,15 +140,15 @@ static int reg_KeyGet(lua_State* L)
 	return 0;
 }
 
-static const char* rgtypes [] = {"BINARY", "DWORD", "DWORDBE", "QWORD", "SZ", "ESZ", "LINK", "MSZ", "NONE", NULL};
 static int reg_KeySet(lua_State* L)
 {
+	static const char* types [] = {"BINARY", "DWORD", "DWORDBE", "QWORD", "SZ", "ESZ", "LINK", "MSZ", "NONE", NULL};
 	WINSH_LUA(2)
 	luaC_checkmethod(L);
 	HKEY h = *(HKEY*)lua_touserdata(L, 1);
 	CString n = luaL_checkstring(L, 2);
 	DWORD type = REG_NONE;
-	int t = luaL_checkoption(L, 4, "NONE", rgtypes);
+	int t = luaL_checkoption(L, 4, "NONE", types);
 	if (t > 7)
 	{
 		switch (lua_type(L, 3))

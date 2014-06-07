@@ -14,17 +14,28 @@ int JHCEdit::GetLine(CString& str, int line)
 	return n;
 }
 
+void JHCEdit::SetSelStartLine(int line)
+{
+	int lc, i;
+	lc = GetLineCount();
+	if (line < 0) i = lc + line + 1; else i = line;
+	if ((i < 0) || (i > lc)) return;
+	i--; if (i < 0) i = LineFromChar();
+	i = LineIndex(i);
+	SetSel(i, i);
+}
+
 int JHCEdit::SetSelFullLines(void)
 {
 	int s, e, sl, el;
 	GetSel(s, e);
-	if (e < 1) return 0;
+	if (e < 0) return 0;
 	sl = LineFromChar(s); el = LineFromChar(e);
 	s = LineIndex(sl);
 	if (e > LineIndex(el))
 		e = LineIndex(el) + LineLength(e);
 	else
-		e = LineIndex(el - 1) + LineLength(LineIndex(el - 1));
+		e = LineIndex(el) + LineLength(LineIndex(el));
 	SetSel(s, e);
 	return (el - sl + 1);
 }
@@ -154,3 +165,16 @@ LRESULT JHCEdit::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, 
 	return 0;
 }
 
+HBRUSH JHCEdit::OnCtlColorEdit(CDCHandle dc, CEdit edit)
+{
+	dc.SetTextColor(colorTx);
+	dc.SetBkColor(colorBg);
+	dc.SetDCBrushColor(colorBg);
+	return HBRUSH(GetStockObject(DC_BRUSH));
+}
+
+LRESULT JHCEdit::OnDoubleClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
+{
+	SetSelFullLines();
+	return 0;
+}

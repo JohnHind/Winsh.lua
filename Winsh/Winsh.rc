@@ -53,10 +53,11 @@ IDR_MAINFRAME MENU
 BEGIN
     POPUP "&Script"
     BEGIN
-        MENUITEM "E&xecute Immediate\tF5",      ID_SCRIPT_EXIM
-        MENUITEM "&Toggle Command Prompt\tF3",  ID_SCRIPT_ADDPROMPT
         MENUITEM "E&valuate Selected Expression\tF2", 32803
         MENUITEM "&Reset Lua Environment",      ID_SCRIPT_RESET
+        MENUITEM "&Save Script\tCTRL+S",        ID_SCRIPT_SAVE
+        MENUITEM "Side-by-Side Scri&pt",        32812
+        MENUITEM "Side-by-Side Fol&der",        ID_SCRIPT_SSF
         MENUITEM SEPARATOR
         MENUITEM "&Exit Winsh.lua",             ID_APP_EXIT
     END
@@ -70,7 +71,6 @@ BEGIN
         MENUITEM "&Delete\tDel",                ID_EDIT_DELETE
         MENUITEM SEPARATOR
         MENUITEM "Select &All\tCtrl+A",         ID_EDIT_SELECTALL
-        MENUITEM "C&lear All",                  ID_EDIT_CLEARALL
     END
     POPUP "&Help"
     BEGIN
@@ -108,10 +108,9 @@ BEGIN
     "A",            ID_EDIT_SELECTALL,      VIRTKEY, CONTROL, NOINVERT
     VK_BACK,        ID_EDIT_UNDO,           VIRTKEY, ALT, NOINVERT
     "Z",            ID_EDIT_UNDO,           VIRTKEY, CONTROL, NOINVERT
-    VK_F1,          ID_HELP,                VIRTKEY, NOINVERT
-    VK_F3,          ID_SCRIPT_ADDPROMPT,    VIRTKEY, NOINVERT
-    VK_F5,          ID_SCRIPT_EXIM,         VIRTKEY, NOINVERT
     VK_F2,          ID_EVALUATE,            VIRTKEY, NOINVERT
+    VK_F1,          ID_HELP,                VIRTKEY, NOINVERT
+    "S",            ID_SCRIPT_SAVE,         VIRTKEY, CONTROL, NOINVERT
 END
 
 
@@ -121,8 +120,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,0,1,0
- PRODUCTVERSION 2,0,1,0
+ FILEVERSION 2,1,0,0
+ PRODUCTVERSION 2,1,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -139,13 +138,13 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "JH"
             VALUE "FileDescription", "Winsh.lua Scripting"
-            VALUE "FileVersion", "2.0.1.0"
+            VALUE "FileVersion", "2.1.0.0"
             VALUE "InternalName", "Winsh.lua"
             VALUE "LegalCopyright", "Copyright © 2010-2014 John Hind"
             VALUE "LegalTrademarks", "Lua Copyright © 1994-2012 Lua.org, PUC-Rio."
             VALUE "OriginalFilename", "Winsh.exe"
             VALUE "ProductName", "Winsh.lua Scripting System for Windows"
-            VALUE "ProductVersion", "2.0.1.0"
+            VALUE "ProductVersion", "2.1.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -160,19 +159,15 @@ END
 // Icon
 //
 
-// The application icon - must be first in file, compiler sorts
-// alphabetically, letters before numbers:
-AA.WINSH                ICON                    "res\\lua-std.ico"
-
-// Numbered icons for console commands (menus):
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
 ID_EDIT_DELETE          ICON                    "res\\delete.ico"
+AA.WINSH                ICON                    "res\\lua-std.ico"
 ID_EDIT_CUT             ICON                    "res\\cut.ico"
 ID_EDIT_COPY            ICON                    "res\\copy.ico"
 ID_EDIT_PASTE           ICON                    "res\\paste.ico"
 ID_EDIT_UNDO            ICON                    "res\\undo.ico"
 ID_HELP                 ICON                    "res\\help.ico"
-
-// Named icons are available to Grunt (freely add or remove):
 LOCK                    ICON                    "res\\lock.ico"
 LOCK2                   ICON                    "res\\lock48.ico"
 KEY                     ICON                    "res\\key.ico"
@@ -277,6 +272,7 @@ END
 STRINGTABLE
 BEGIN
     ID_SCRIPT_EXIM          "Execute the text or selection in the upper pane as a Lua script\nExecute Scripts"
+    ID_SCRIPT_OPEN          "Open the selected script name in the lower pane."
     ID_SCRIPT_RESET         "Reset the Script Environment\nReset Scripts"
     ID_HELP_LIST            "Display an inventory of the available script resources\nShow Inventory"
 END
@@ -293,8 +289,11 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_SCRIPT_ADDPROMPT     "Add or remove a command prompt on the current line\nToggle Prompt"
+    ID_SCRIPT_ERROR         "Show the current error in the lower window\nFind Error"
     ID_EVALUATE             "Evaluate the selected expression and display the result"
+    ID_SCRIPT_SAVE          "Save the script in the lower pane to its file."
+    ID_SCRIPT_SSS           "Create a side-by-side script file or open an existing file."
+    ID_SCRIPT_SSF           "Create start script file in a side-by-side folder or open an existing file."
 END
 
 #endif    // English (United States) resources

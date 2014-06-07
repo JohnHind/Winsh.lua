@@ -11,9 +11,13 @@
 #include "JHCMultiPaneStatusBar.h"
 #include "LuaLibIF.h"
 #include "JHCMsgTrap.h"
+#include "JHCPathString.h"
+#include "JHCRect.h"
 #include "CLuaCommandEnv.h"
 
-CRect PutWindow(int w = 400, int h = 400);
+#define INV_KEY_FIL (2)
+
+CRect PutWindow(int w = 400, int h = 400, int posn = POS_RIGHT_BOTTOM);
 
 class CMainFrame : public CFrameWindowImpl<CMainFrame>, public CUpdateUI<CMainFrame>,
 		public CMessageFilter, public CMsgTrap, public CIdleHandler,
@@ -30,6 +34,11 @@ protected:
 	CLua<ILuaLibWinsh>* m_lua;
 	CLuaCommandEnv* m_cmd;
 
+	BOOL m_FD;					        //Script in lower pane is not saved.
+	BOOL m_ED;                          //Script in lower pane is not executed.
+	int m_FS;                           //0-No File, 1-File, 2-Resource.
+	CPathString m_FN;				    //File name for bottom pane
+
 	int m_refMM;						//Index of table in registry, Lua Functions by index
 	UINT m_repmode;						//The current message reporting mode
 	UINT m_errmode;						//The current error reporting mode
@@ -45,8 +54,8 @@ protected:
 
 	CString AppName;					//Application name shown in window title bars (Winsh.lua Scripting System)
 	CString InitName;					//Name of the initialisation script executed on Lua reset (init)
-	CString ResType;					//Type of Script Resources (GNT)
-	CString LuaExt;						//Extension for script files (.GNT)
+	CString ResType;					//Type of Script Resources (LUA)
+	CString LuaExt;						//Extension for script files (.lua)
 	CString ExePath;					//Full path to this exe file.
 	CString ExeName;					//Name of this exe file (winsh).
 	CString LibPath;					//Full path to library files (or empty).
@@ -61,18 +70,26 @@ public:
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
 	{
-		if (m_wndTopEdit.m_hWnd == GetFocus())
-		{
+		if (m_wndTopEdit.m_hWnd == GetFocus()) {
 			// Capture the ENTER key for special processing in the top edit control:
-			if ((pMsg->message == WM_KEYDOWN) && (pMsg->wParam == VK_RETURN)) return ExecuteImmediate(TRUE);
+			if ((pMsg->message == WM_KEYDOWN) && (pMsg->wParam == VK_RETURN)) {EvaluateSelection(); return TRUE;}
 			// Typing character in overstrike mode - delete next character first:
 			if (m_ovr && (pMsg->message == WM_CHAR) && (pMsg->wParam > 31)) m_wndTopEdit.DeleteChar();
+			if (pMsg->message == WM_LBUTTONDBLCLK) {EvaluateSelection(); return TRUE;}
+		} else if (m_wndBotEdit.m_hWnd == GetFocus()) {
+			if (pMsg->message == WM_LBUTTONDBLCLK) {EvaluateSelection(); return TRUE;}
 		}
 		return CFrameWindowImpl<CMainFrame>::PreTranslateMessage(pMsg);
 	}
 
 	virtual BOOL OnIdle()
 	{
+	    CString x;
+	    CString fl = CString("L:%d");
+        if (m_wndBotEdit.GetModify()) {m_ED = TRUE; m_FD = TRUE; m_wndBotEdit.SetModify(FALSE);}
+	    if (m_FD && m_ED) fl = CString("*>L:%d"); else if (m_FD) fl = CString("*L:%d"); else if (m_ED) fl = CString(">L:%d");
+	    x.Format(fl, m_wndBotEdit.GetSelStartLine());
+	    m_status.SetPaneText(IDR_STATUS_PANE0, x);
 		m_ovr = (GetKeyState(VK_INSERT) & 1) != 0;
 		if (m_ovr)
 			m_status.SetPaneText(IDR_STATUS_PANE3, CString("OVR"));
@@ -88,6 +105,7 @@ public:
 	BEGIN_UPDATE_UI_MAP(CMainFrame)
 		UPDATE_ELEMENT(ID_VIEW_STATUS_BAR, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_SCRIPT_EXIM, UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_SCRIPT_SAVE, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_EDIT_CUT, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_EDIT_COPY, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_EDIT_PASTE, UPDUI_MENUPOPUP)
@@ -102,11 +120,11 @@ public:
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_CLOSE, OnClose)
+		MESSAGE_HANDLER(WM_SIZE, OnResize)
 		MESSAGE_HANDLER(WM_INITMENUPOPUP, OnMenuPopup)
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		MESSAGE_HANDLER(WM_COPYDATA, OnRemoteCommand)
 		MESSAGE_HANDLER(WM_TIMER, OnTimer)
-		MESSAGE_HANDLER(WM_CTLCOLORSTATIC, OnColor)
 		MESSAGE_RANGE_HANDLER(0xC000, 0xFFFF, OnRegisteredMessage)
 		COMMAND_ID_HANDLER(ID_APP_EXIT, OnFileExit)
 		COMMAND_ID_HANDLER(ID_EDIT_CUT, OnEditCut)
@@ -114,13 +132,13 @@ public:
 		COMMAND_ID_HANDLER(ID_EDIT_PASTE, OnEditPaste)
 		COMMAND_ID_HANDLER(ID_EDIT_DELETE, OnEditDelete)
 		COMMAND_ID_HANDLER(ID_EDIT_SELECTALL, OnEditSelectAll)
-		COMMAND_ID_HANDLER(ID_EDIT_CLEARALL, OnEditClearAll)
 		COMMAND_ID_HANDLER(ID_EDIT_CLEARCUR, OnEditClearCurrent)
 		COMMAND_ID_HANDLER(ID_EDIT_UNDO, OnEditUndo)
-		COMMAND_ID_HANDLER(ID_SCRIPT_EXIM, OnScriptExIm)
-		COMMAND_ID_HANDLER(ID_SCRIPT_ADDPROMPT, OnScriptAddPrompt)
 		COMMAND_ID_HANDLER(ID_EVALUATE, OnScriptEvaluate)
 		COMMAND_ID_HANDLER(ID_SCRIPT_RESET, OnScriptReset)
+		COMMAND_ID_HANDLER(ID_SCRIPT_SAVE, OnScriptSave)
+		COMMAND_ID_HANDLER(ID_SCRIPT_SSS, OnScriptSSS)
+		COMMAND_ID_HANDLER(ID_SCRIPT_SSF, OnScriptSSF)
 		COMMAND_ID_HANDLER(ID_CLOSE_REPORT, OnCloseReport)
 		COMMAND_ID_HANDLER(ID_NOTIFY_EXIT, OnNotifyExit)
 		COMMAND_ID_HANDLER(ID_HELP_LIST, OnHelpList)
@@ -134,23 +152,25 @@ public:
 		CHAIN_MSG_MAP(CNotifyIconImpl<CMainFrame>)
 		CHAIN_MSG_MAP(CDropFiles<CMainFrame>)
 		CHAIN_MSG_MAP(CCMenu)
+		REFLECT_NOTIFICATIONS()
 	END_MSG_MAP()
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
+		RECT r;
+
 		// Create and initialise the Report Window on its own thread:
 		m_paras = new CWriteFrameProxy(this, true);
-		m_paras->rect = PutWindow(600, 400);
+		m_paras->rect = PutWindow(800, 600, POS_CENTER);
 		m_paras->visible = false;
 		m_paras->Create();
 
 		CreateSimpleStatusBar();
 
 		m_status.SubclassWindow(m_hWndStatusBar);
-		int arrPanes[] = {ID_DEFAULT_PANE, IDR_STATUS_PANE1, IDR_STATUS_PANE2, IDR_STATUS_PANE3, IDR_STATUS_PANE4};
-		int arrWidths[] = {0, 50, 120, 30, 30};
+		int arrPanes[] = {ID_DEFAULT_PANE, IDR_STATUS_PANE0, IDR_STATUS_PANE1, IDR_STATUS_PANE2, IDR_STATUS_PANE3, IDR_STATUS_PANE4};
+		int arrWidths[] = {0, 100, 50, 120, 30, 30};
 		m_status.SetPanes(arrPanes, sizeof(arrPanes) / sizeof(int), false);
-		// SetPaneWidths is a personal addition in atlctrlx.h (WTL):
 		m_status.SetPaneWidths(arrWidths, sizeof(arrWidths) / sizeof(int));
 
 		UISetCheck(ID_VIEW_STATUS_BAR, 1);
@@ -169,17 +189,20 @@ public:
 			| ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE;
 		m_wndTopEdit.Create(m_wndSplitter, rcDefault, NULL, dwEditStyle);
 		m_wndTopEdit.SetFont((HFONT)::GetStockObject(SYSTEM_FIXED_FONT));
+		m_wndTopEdit.SetColors((COLORREF)RGB(0,0,0), (COLORREF)RGB(0,255,0));
 		m_wndTopEdit.SetMargins(10, 10);
 		m_wndTopEdit.SetTabStops(16);
 		m_wndTopEdit.SetLimitText(-1);
 
 		// create the lower edit control
-		dwEditStyle |= ES_READONLY;
 		m_wndBotEdit.Create(m_wndSplitter, rcDefault, NULL, dwEditStyle);
 		m_wndBotEdit.SetFont((HFONT)::GetStockObject(SYSTEM_FIXED_FONT));
+		m_wndBotEdit.SetColors((COLORREF)RGB(255,255,255), (COLORREF)RGB(0,0,0));
 		m_wndBotEdit.SetMargins(10, 10);
 		m_wndBotEdit.SetTabStops(16);
 		m_wndBotEdit.SetLimitText(-1);
+		m_wndBotEdit.SetModify(FALSE);
+		m_FD = m_ED = FALSE; m_FS = 0; m_FN = CString();
 
 		// set the splitter panes
 		m_wndSplitter.SetSplitterPanes(m_wndTopEdit, m_wndBotEdit);
@@ -187,7 +210,8 @@ public:
 		// set the splitter as the client area window
 		m_hWndClient = m_wndSplitter;
 		UpdateLayout();
-		m_wndSplitter.SetSplitterPos(100);
+		GetClientRect(&r);
+		m_wndSplitter.SetSplitterPos((r.bottom-r.top)/2);
 
 		// register to accept dropped files:
 		AcceptDropFiles(true);
@@ -252,7 +276,19 @@ public:
 		m_lua = new CLua<ILuaLibWinsh>(this, luaX_loads, luaX_preloads, luaX_postload);
 		IncUI();
 		OpenLua();
+
+	    // Process command line and initial script:
+	    BOOL nocmd = FALSE; BOOL nofile = FALSE; BOOL nodef = FALSE;
+	    x.LoadString(IDS_NOCMDLINE); x.MakeUpper(); nocmd = (x.Left(1) == CString("T"));
+	    x.LoadString(IDS_NOFILESCRIPT); x.MakeUpper(); nofile = (x.Left(1) == CString("T"));
+	    x.LoadString(IDS_NODEFSCRIPT); x.MakeUpper(); nodef = (x.Left(1) == CString("T"));
+	    ExecCommandLine(CString(GetCommandLine()), nodef, nocmd, nofile);
+
 		DecUI();
+
+        // Make sure we have a prompt in the top edit and focus it:
+	    AddPrompt();
+	    m_wndTopEdit.SetFocus();
 		return 0;
 	}
 
@@ -277,27 +313,27 @@ public:
 		// have closed and all scripts have completed.
 		if (IsWindowVisible())
 		{
-			DecUI();
-			ShowWindow(SW_HIDE);
+			if (SaveFile()) {
+			    DecUI();
+			    ShowWindow(SW_HIDE);
+				m_FD = FALSE;
+			}
 		}
 		return 0;
 	}
 
-	LRESULT OnColor(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled)
+	LRESULT OnResize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
-		if ((HWND)lParam == m_wndBotEdit.m_hWnd)
-		{
-			bHandled = TRUE;
-			return (LRESULT)GetSysColorBrush(COLOR_WINDOW);
-		}
+		CheckEditStatus();
 		bHandled = FALSE;
 		return 0;
 	}
+	
 
 	LRESULT OnFileExit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
 		// The menu Exit option actually shuts this app down.
-		DestroyWindow();
+		if (SaveFile()) DestroyWindow();
 		return 0;
 	}
 
@@ -319,43 +355,25 @@ public:
 		bHandled = FALSE;
 		if (m_notifymenu) return 0;
 		int s; int e;
+	    CheckEditStatus();
 		SetCCMenuGutter(true);
 		UIEnable(ID_EDIT_UNDO, m_wndTopEdit.CanUndo());
-		if (m_wndSplitter.GetActivePane() == 0)
+		UIEnable(ID_SCRIPT_SAVE, m_FD);
+		UIEnable(ID_EDIT_PASTE, (::IsClipboardFormatAvailable(CF_TEXT) || ::IsClipboardFormatAvailable(CF_UNICODETEXT)));
+		if (m_wndSplitter.GetActivePane() == 0) m_wndTopEdit.GetSel(s, e); else m_wndBotEdit.GetSel(s, e);
+		if (e > s)
 		{
-			m_wndTopEdit.GetSel(s, e);
-			UIEnable(ID_EDIT_PASTE, (::IsClipboardFormatAvailable(CF_TEXT) || ::IsClipboardFormatAvailable(CF_UNICODETEXT)));
-			if (e > s)
-			{
-				UIEnable(ID_EDIT_CUT, TRUE);
-				UIEnable(ID_EDIT_COPY, TRUE);
-				UIEnable(ID_EDIT_DELETE, TRUE);
-				UIEnable(ID_EVALUATE, TRUE);
-			}
-			else
-			{
-				UIEnable(ID_EDIT_CUT, FALSE);
-				UIEnable(ID_EDIT_COPY, FALSE);
-				UIEnable(ID_EDIT_DELETE, FALSE);
-				UIEnable(ID_EVALUATE, FALSE);
-			}
+			UIEnable(ID_EDIT_CUT, TRUE);
+			UIEnable(ID_EDIT_COPY, TRUE);
+			UIEnable(ID_EDIT_DELETE, TRUE);
+			UIEnable(ID_EVALUATE, TRUE);
 		}
 		else
 		{
-			UIEnable(ID_EDIT_PASTE, FALSE);
 			UIEnable(ID_EDIT_CUT, FALSE);
+			UIEnable(ID_EDIT_COPY, FALSE);
 			UIEnable(ID_EDIT_DELETE, FALSE);
-			m_wndBotEdit.GetSel(s, e);
-			if (e > s)
-			{
-				UIEnable(ID_EDIT_COPY, TRUE);
-				UIEnable(ID_EVALUATE, TRUE);
-			}
-			else
-			{
-				UIEnable(ID_EDIT_COPY, FALSE);
-				UIEnable(ID_EVALUATE, FALSE);
-			}
+			UIEnable(ID_EVALUATE, FALSE);
 		}
 		return 0;
 	}
@@ -366,9 +384,7 @@ public:
 		int ss = LOWORD(lParam);
 		int se = HIWORD(lParam);
 		menu.AppendMenu(MF_SEPARATOR);
-		if (m_wndSplitter.GetActivePane() == 0)
-			menu.AppendMenu(MF_ENABLED, ID_SCRIPT_EXIM, _T("Execute"));
-		menu.AppendMenu((ss == se)? MF_GRAYED : MF_ENABLED, ID_EVALUATE, _T("Evaluate Selected"));
+		menu.AppendMenu((ss == se)? MF_GRAYED : MF_ENABLED, ID_EVALUATE, TEXT("Evaluate Selected"));
 		menu.AppendMenu(MF_ENABLED, ID_EDIT_CLEARCUR, _T("Clear"));
 		return 0;
 	}
@@ -409,13 +425,6 @@ public:
 		return 0;
 	}
 
-	LRESULT OnEditClearAll(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
-	{
-		ClearTop();
-		ClearBot();
-		return 0;
-	}
-
 	LRESULT OnEditClearCurrent(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
 		if (m_wndSplitter.GetActivePane() == 0)
@@ -431,23 +440,46 @@ public:
 		return 0;
 	}
 
-	LRESULT OnScriptExIm(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	LRESULT OnScriptEvaluate(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-		ExecuteImmediate(FALSE);
+		EvaluateSelection();
+		AddPrompt();
 		return 0;
 	}
 
-	LRESULT OnScriptEvaluate(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	LRESULT OnScriptSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-		CString x; CString c;
-		if (m_wndSplitter.GetActivePane() == 0)
-			m_wndTopEdit.GetString(x);
-		else
-			m_wndBotEdit.GetString(x);
-		AddCommand(CString("=") + x);
-		c = m_cmd->GetCmdVar(CString("_EQUAL"), CString("return (!!)"));
-		c.Replace(CString("!!"), x);
-		if (c.GetLength() > 0) ExecLuaString(c, TRUE);
+		SaveFile(FALSE);
+		return 0;
+	}
+
+	LRESULT OnScriptSSS(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	{
+		CPathString n(ExePath+ExeName+LuaExt);
+		if (n.PathIsDirectory()) return 0;
+		if (n.PathFileExists() && (!n.PathIsDirectory())) {
+			LoadFile(n);
+		} else {
+	        m_FD = TRUE; m_ED = FALSE; m_FS = 1; m_wndBotEdit.SetModify(FALSE);
+	        m_FN = CString(n);
+	        CheckEditStatus();
+		}
+		return 0;
+	}
+
+	LRESULT OnScriptSSF(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	{
+		CPathString n(ExePath+ExeName+LuaExt);
+		if ((n.PathFileExists()) && (!n.PathIsDirectory())) return 0;
+		if (!n.PathFileExists()) ::CreateDirectory(n, NULL);
+		n.PathAppend(InitName+LuaExt);
+		if (n.PathFileExists()) {
+			LoadFile(n);
+		} else {
+	        m_FD = TRUE; m_ED = FALSE; m_FS = 1; m_wndBotEdit.SetModify(FALSE);
+	        m_FN = CString(n);
+	        CheckEditStatus();
+		}
 		return 0;
 	}
 
@@ -457,18 +489,19 @@ public:
 		return 0;
 	}
 
-	LRESULT OnScriptAddPrompt(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
-	{
-		AddPrompt();
-		return 0;
-	}
-
 	LRESULT OnScriptReset(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-		ClearBot();
 		m_status.SetPaneText(IDR_STATUS_PANE1, CString(""));
 		CloseLua();
 		OpenLua();
+		m_repmode = ERM_GUI;
+		m_errmode = ERM_GUI;
+		m_ED = TRUE;
+	    RemovePrompt(); WriteMessage(TEXT("**LUA RESET**"),TRUE,TRUE);
+
+        // Make sure we have a prompt in the top edit and focus it:
+	    AddPrompt();
+	    m_wndTopEdit.SetFocus();
 		return 0;
 	}
 
@@ -494,87 +527,94 @@ public:
 
 	LRESULT OnHelp(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-		ClearBot();
-		WriteMessage(CString("    Winsh.lua Summary Help"));
-		WriteMessage(CString("    ======================"));
+		RemovePrompt();
+		int ss = m_wndTopEdit.GetSelEndLine();
+		WriteMessage(TEXT("--[["),TRUE,TRUE);
+		WriteMessage(TEXT("--    Winsh.lua Summary Help"),TRUE,TRUE);
+		WriteMessage(TEXT("--    ======================"),TRUE,TRUE);
 		CString nm("onhelp");
 		if (m_cmd->CheckCmdField(nm, LUA_TFUNCTION))
-			ExecLuaString(nm + CString("()"), TRUE);
+			ExecLuaString(nm + CString("()"), TRUE, NULL);
 		else
-			WriteMessage(CString("Help Topic not available."));
-		m_wndBotEdit.SetSel(0, 0, FALSE);
+			WriteMessage(TEXT("-- Help Topic not available."),TRUE,TRUE);
+		WriteMessage(TEXT("--]]"),TRUE,TRUE);
+		AddPrompt();
+		m_wndTopEdit.SetSelStartLine(ss);
 		return 0;
 	}
 
 	LRESULT OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-		ClearBot();
-		WriteMessage(CString("    About Winsh.lua"));
-		WriteMessage(CString("    ==============="));
+		
+		RemovePrompt();
+	    int ss = m_wndTopEdit.GetSelEndLine();
+	    WriteMessage(TEXT("--[["),TRUE,TRUE);
+		WriteMessage(TEXT("--    About Winsh.lua"),TRUE,TRUE);
+		WriteMessage(TEXT("--    ==============="),TRUE,TRUE);
 		CString nm("onabout");
 		if (m_cmd->CheckCmdField(nm, LUA_TFUNCTION))
-			ExecLuaString(nm + CString("()"), TRUE);
+			ExecLuaString(nm + CString("()"), TRUE, NULL);
 		else
-			WriteMessage(CString("Help Topic not available."));
-		m_wndBotEdit.SetSel(0, 0, FALSE);
+			WriteMessage(TEXT("-- Help Topic not available."),TRUE,TRUE);
+	    WriteMessage(TEXT("--]]"),TRUE,TRUE);
+		AddPrompt();
+		m_wndTopEdit.SetSelStartLine(ss);
 		return 0;
 	}
 
 	LRESULT OnHelpList(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-		ClearBot();
-		WriteMessage(CString("    Resources available in this Winsh.lua Build"));
-		WriteMessage(CString("    ==========================================="));
+		RemovePrompt();
+	    int ss = m_wndTopEdit.GetSelEndLine();
+	    WriteMessage(TEXT("--[["),TRUE,TRUE);
+		WriteMessage(TEXT("--    Resources available in this Winsh.lua Build"),TRUE,TRUE);
+		WriteMessage(TEXT("--    ==========================================="),TRUE,TRUE);
 		CString nm("oninventory");
 		if (m_cmd->CheckCmdField(nm, LUA_TFUNCTION))
-			ExecLuaString(nm + CString("()"), TRUE);
+			ExecLuaString(nm + CString("()"), TRUE, NULL);
 		else
-			WriteMessage(CString("Help Topic not available."));
-		m_wndBotEdit.SetSel(0, 0, FALSE);
+			WriteMessage(TEXT("-- Help Topic not available."),TRUE,TRUE);
+	    WriteMessage(TEXT("--]]"),TRUE,TRUE);
+		AddPrompt();
+		m_wndTopEdit.SetSelStartLine(ss);
 		return 0;
 	}
 
 	LRESULT OnHelpCommandLine(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-		ClearBot();
-		WriteMessage(CString("    Winsh.lua Command-line Help"));
-		WriteMessage(CString("    ==========================="));
+		RemovePrompt();
+	    int ss = m_wndTopEdit.GetSelEndLine();
+	    WriteMessage(TEXT("--[["),TRUE,TRUE);
+		WriteMessage(TEXT("--    Winsh.lua Command-line Help"),TRUE,TRUE);
+		WriteMessage(TEXT("--    ==========================="),TRUE,TRUE);
 		CString nm("oncommandline");
 		if (m_cmd->CheckCmdField(nm, LUA_TFUNCTION))
-			ExecLuaString(nm + CString("()"), TRUE);
+			ExecLuaString(nm + CString("()"), TRUE, NULL);
 		else
-			WriteMessage(CString("Help Topic not available."));
-		m_wndBotEdit.SetSel(0, 0, FALSE);
+			WriteMessage(TEXT("-- Help Topic not available."),TRUE,TRUE);
+	    WriteMessage(TEXT("--]]"),TRUE,TRUE);
+		AddPrompt();
+		m_wndTopEdit.SetSelStartLine(ss);
 		return 0;
 	}
 
 	LRESULT OnHelpAppNotes(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
 		lua_State* L = *m_lua;
-		ClearBot();
-		WriteMessage(CString("    Application Notes"));
-		WriteMessage(CString("    ================="));
+		RemovePrompt();
+	    int ss = m_wndTopEdit.GetSelEndLine();
+	    WriteMessage(TEXT("--[["),TRUE,TRUE);
+		WriteMessage(TEXT("--    Application Notes"),TRUE,TRUE);
+		WriteMessage(TEXT("--    ================="),TRUE,TRUE);
 		lua_getglobal(L, "_APPNOTES");
 		if (lua_isstring(L, -1))
-			WriteMessage(CString(lua_tostring(L, -1)));
+			WriteMessage(CString(lua_tostring(L, -1)),TRUE,TRUE);
 		else
-			WriteMessage(CString("This message may be customised by setting the global string\r\n'_APPNOTES' in the application script."));
-		m_wndBotEdit.SetSel(0, 0, FALSE);
+			WriteMessage(TEXT("-- This message may be customised by setting the global string\r\n-- '_APPNOTES' in the application script."),TRUE,TRUE);
+	    WriteMessage(TEXT("--]]"),TRUE,TRUE);
+		AddPrompt();
+		m_wndTopEdit.SetSelStartLine(ss);
 		return 0;
-	}
-
-	void LoadFile(LPCTSTR name)
-	{
-		HANDLE h; BYTE buf; DWORD n;
-
-		m_wndTopEdit.SetWindowText(TEXT(""));
-		h = CreateFile(name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (h == INVALID_HANDLE_VALUE) return;
-		while (::ReadFile(h, &buf, 1, &n, NULL) && (n == 1))
-		{
-			m_wndTopEdit.AppendText(CString(buf));
-		}
-		if (!(h == INVALID_HANDLE_VALUE)) CloseHandle(h);
 	}
 
 	bool OnFileDrop(UINT n)
@@ -587,12 +627,22 @@ public:
 	void ClearBot(void);
 	void ReportMem(void);
 	void AddPrompt(void);
+	void RemovePrompt(void);
 	void WriteOK(void) {m_status.SetPaneText(IDR_STATUS_PANE1, TEXT("OK"));}
-	void SetRunning(void) {m_status.SetPaneText(IDR_STATUS_PANE1, TEXT("RUNNING"));}
-	BOOL IsEmpty(void){return !(m_wndBotEdit.GetModify());}
+	void SetRunning(void) {m_status.SetPaneText(IDR_STATUS_PANE1, TEXT("RUN"));}
 
 	void CloseLua(void);
 	void OpenLua(void);
+
+	BOOL LoadFile(LPCTSTR name);
+	BOOL LoadResource(LPCTSTR name);
+	void PrepExec(LPCTSTR cmd);
+	int  GetLower(void);
+	void GoCommand(void);
+	void GoLine(int line);
+
+	BOOL SaveFile(BOOL ask = TRUE);
+	void CheckEditStatus();
 
 	void IncUI(void);
 	void DecUI(void);
@@ -600,9 +650,11 @@ public:
 	void OnNotifyLeftclick();
 	void PrepareNotifyMenu(CMenuHandle m, int k);
 	HICON GetMenuIcon(UINT uCmd);
-	BOOL ExecuteImmediate(BOOL enter);
-	void AddCommand(CString &s);
-	void ExecLuaString(CString &s, BOOL cmd = FALSE);
+
+	BOOL EditScript(LPCTSTR nm);
+
+	void EvaluateSelection();
+	void ExecLuaString(CString &s, BOOL cmd, LPCTSTR ctx);
 	void SetLibraryPaths();
 	void ExecCommandLine(CString& cmd, BOOL nodef = FALSE, BOOL nocmd = FALSE, BOOL nofile = FALSE);
 
@@ -635,11 +687,11 @@ public:
 	virtual UINT FindFreeLuaMessage(UINT code, UINT num = 1);
 	virtual void SetReportMode(UINT r, UINT e);
 	virtual void CMainFrame::SetOverlay(LPCTSTR icon);
-	virtual BOOL SetFile(LPCTSTR fn, BOOL clr = FALSE);
+	virtual BOOL SetFile(LPCTSTR fn, UINT opt = 0);
 	virtual BOOL SetTaskIcon(HICON icon, bool lmenu, bool rmenu);
 	virtual void Balloon(LPCTSTR mt, LPCTSTR ms, UINT to, DWORD ic);
-	virtual void WriteMessage(CString& s, BOOL nl = TRUE);
-	virtual void WriteError(CString& s);
+	virtual void WriteMessage(LPCTSTR s = NULL, BOOL nl = TRUE, BOOL fg = FALSE);
+	virtual void WriteError(CString& s, BOOL fg = FALSE);
 	virtual void SetReportWindow(int act, int px, int py);
 	virtual TCHAR ReadConsole();
 	virtual LPCTSTR GetLine(BOOL start = FALSE);

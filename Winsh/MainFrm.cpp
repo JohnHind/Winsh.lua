@@ -8,14 +8,14 @@ CString _StdinBuf = CString("");	  //Buffer for reading standard input channel.
 
 #pragma region Support Functions
 
-CRect PutWindow(int w, int h)
+CRect PutWindow(int w, int h, int posn/*= POS_BOTTOM_RIGHT*/)
 {
-	CRect r;
-	CRect d;
+	JHCRect r;
+	JHCRect d;
 	SystemParametersInfo(SPI_GETWORKAREA, 0, (PVOID)d, 0);
-	r.bottom = d.bottom; r.right = d.right;
-	r.top = r.bottom - h; if (r.top < d.top) r.top = d.top;
-	r.left = r.right - w; if (r.left < d.left) r.left = d.left;
+	r = d;
+	r.right = r.left + w; r.bottom = r.top + h;
+	r.place(d, posn);
 	return r;
 }
 
@@ -38,6 +38,7 @@ void CMainFrame::SetLibraryPaths()
 		if (LuaExt != CString(".LUA"))
 			x1 = x1 + CString(";") + ExePath + CString("?.LUA");
 		x2 = ExePath + CString("?.dll");
+		x2 = CString("!\?.dll");
 	}
 	lua_getglobal(L, "package");
 	luaX_pushstring(L, x1);
@@ -67,10 +68,7 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 	int n; CString x; CString y; BOOL er = FALSE; int r;
 	CString slb = CString(""); CString sla = CString("");
 	int sp = 0; BOOL im = FALSE; BOOL op = TRUE; BOOL vr = FALSE;
-	CString em; BOOL con = FALSE;
-#if defined SF_CONSOLE
-	con = TRUE;
-#endif
+	CString em;
 	LPWSTR* c = CommandLineToArgvW(cmd, &n);
 	if (n > 1)
 	{	// Parse the command line collecting script texts, marking the position of
@@ -146,8 +144,7 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 	}
 	else
 	{
-		if ((im) || (vr)) m_repmode = (con)? ERM_STDIO : ERM_GUI;
-		if (vr) ExecLuaString(CString("onabout()"), TRUE);
+		if (vr) ExecLuaString(CString("onabout()"), TRUE, NULL);
 		if ((sp > 0) && (!nocmd))
 		{	// There is a script name in the command line. We try to load the script
 			// onto the stack, r will be 0 if we succeed.
@@ -307,30 +304,39 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 			lua_checkstack(L, 2);
 			SetRunning();
 			int rr = luaX_loadstring(L, sla, CString("CommandLine-Execute"));
-			if (rr == 0) rr = lua_pcall(L, 0, 0, 0);
-			if (rr != 0)
+			if (rr == 0) rr = lua_pcall(L, 0, 1, 0);
+			if (rr == 0)
 			{
-				WriteError(CString(lua_tostring(L, -1)));
-				lua_pop(L, 1);
+				if (lua_type(L, -1) == LUA_TSTRING)
+				{
+					WriteMessage(CString(lua_tostring(L, -1)));
+				}
+				else if (lua_type(L, -1) == LUA_TNUMBER)
+				{
+					_procret = lua_tointeger(L, -1);
+				}
+				WriteOK();
 			}
 			else
 			{
-				WriteOK();
+				WriteError(CString(lua_tostring(L, -1)));
 			}
+			lua_pop(L, 1);
 		}
 	}
 	if (er)
 	{
-		m_repmode = (con)? ERM_STDIO : ERM_GUI;
-		WriteError(em);
+		WriteError(em, TRUE);
 	}
 	else if (im && (!vr))
 	{
-		m_repmode = (con)? ERM_STDIO : ERM_GUI;
-		if (con)
-			ExecLuaString(CString("oncommandline()"), TRUE);
-		else
-			WriteMessage(CString(""));
+#if defined SF_CONSOLE
+	    ExecLuaString(CString("oncommandline()"), TRUE, NULL);
+#else
+		m_repmode = ERM_GUI;
+		m_errmode = ERM_GUI;
+	    WriteMessage(0,TRUE,TRUE);
+#endif
 	}
 	ReportMem();
 }
@@ -344,6 +350,49 @@ void CMainFrame::CloseLua(void)
 	ResetMsgTrap();
 	m_lua->CloseLua();
 	delete(m_cmd);
+}
+
+static int LuaConsole(lua_State* L)
+{
+	static const char* actions [] = {"open", "prep", "prompt", "script", "url", "clear", "command", "line", NULL};
+	CString s; int x; BOOL r;
+	WINSH_LUA(2);
+	CMainFrame* M = (CMainFrame*)H;
+	switch (luaL_checkoption(L, 1, NULL, actions))
+	{
+	case 0: // Open a file or resource in the lower edit pane:
+		s = CString(luaL_checkstring(L, 2));
+		x = luaL_optinteger(L, 3, 1);
+		if (x < 1) x = 1;
+		r = M->EditScript(s);
+		if (r) M->GoLine(x);
+		lua_pushboolean(L, r);
+		return 1;
+	case 1: // Prepare upper pane to execute a lua string:
+		s = CString(luaL_optstring(L, 2, ""));
+		M->PrepExec(s);
+		return 0;
+	case 2: // Add a new prompt if there is not already one:
+		M->AddPrompt();
+		return 0;
+	case 3: // Conditionally return the script in the lower pane:
+		return M->GetLower();
+	case 4: // Open a URL in the default browser:
+		s = CString(luaL_checkstring(L, 2));
+		ShellExecute(NULL, TEXT("open"), s, NULL, NULL, SW_SHOWNORMAL);
+		return 0;
+	case 5: // Clear the top console pane:
+		M->ClearTop();
+		return 0;
+	case 6: // Goto the first command prompt above the current position:
+		M->GoCommand();
+		return 0;
+	case 7: // Goto a specified line in the lower edit pane:
+		x = luaL_optinteger(L, 2, 1);
+		M->GoLine(x);
+		return 0;
+	}
+	return 0;
 }
 
 void CMainFrame::OpenLua(void)
@@ -367,7 +416,7 @@ void CMainFrame::OpenLua(void)
 	// Reset the report window:
 	m_paras->SendMessageDown(WM_USER, WF_CLEAR, 0);
 	m_paras->EnterCS();
-	m_paras->rect = PutWindow(400, 300);
+	m_paras->rect = PutWindow(800, 600, POS_CENTER);
 	m_paras->LeaveCS();
 	m_paras->SendMessageDown(WM_USER, WF_MOVE, 0);
 
@@ -382,20 +431,15 @@ void CMainFrame::OpenLua(void)
 	m_cmd = new CLuaCommandEnv(L);
 	LastError = CString(*m_cmd);
 
+	// Add some items to the command environment:
+	lua_pushcfunction(L, LuaConsole);
+	m_cmd->SetCmdVar(TEXT("console"));
+
 	// Clear interactive console (Must be this late to see command environment):
-	if (m_wndTopEdit.GetWindowTextLength() == 0) ClearTop();
-	ClearBot();
 	if (LastError.GetLength() > 0) WriteError(LastError);
 
 	// Run any initialisation script "init":
 	if (luaX_loadresource(L, CString("init")) != LUA_ERRFILE) ExecChunk();
-
-	// Process command line and initial script:
-	CString x; BOOL nocmd = FALSE; BOOL nofile = FALSE; BOOL nodef = FALSE;
-	x.LoadString(IDS_NOCMDLINE); x.MakeUpper(); nocmd = (x.Left(1) == CString("T"));
-	x.LoadString(IDS_NOFILESCRIPT); x.MakeUpper(); nofile = (x.Left(1) == CString("T"));
-	x.LoadString(IDS_NODEFSCRIPT); x.MakeUpper(); nodef = (x.Left(1) == CString("T"));
-	ExecCommandLine(CString(GetCommandLine()), nodef, nocmd, nofile);
 
 	// Fire the startup message:
 	PostMessage(GT_STARTUP);
@@ -453,119 +497,139 @@ HICON CMainFrame::GetMenuIcon(UINT uCmd)
 	return hs;
 }
 
-BOOL CMainFrame::ExecuteImmediate(BOOL enter)
-{
-	int st, ed, ll, pl;
-	CString s; CString x; CString a; BOOL echo = FALSE;
-	pl = m_prompt.GetLength();
-	if (m_wndTopEdit.GetSelLength() < 1)
-	{	//There is no selection.
-		ll = m_wndTopEdit.GetLine(s);
-		if ((ll >= pl) && (s.Left(pl) == m_prompt))
-		{	//Current line is prompted - strip prompt and execute line.
-			s = s.Mid(pl); s.TrimLeft(); s.TrimRight();
-			if (m_wndTopEdit.GetSelStartLine() < m_wndTopEdit.GetLineCount()) a = s;
-			if (s.Left(1) == CString("="))
-			{
-				s = s.Mid(1); s.TrimLeft();
-				x = m_cmd->GetCmdVar(CString("_EQUAL"), CString("return (!!)"));
-				x.Replace(CString("!!"), s);
-				s = x;
-			}
-			st = 0;
-		}
-		else
-		{	//No prompt and no selection - execute entire content.
-			if (enter) return FALSE;
-			st = 1; ed = m_wndTopEdit.GetLineCount();
-		}
-	}
-	else
-	{	//There is a selection - execute selection only.
-		if (enter) return FALSE;
-		m_wndTopEdit.SetSelFullLines();
-		st = m_wndTopEdit.GetSelStartLine();
-		ed = m_wndTopEdit.GetSelEndLine();
-	}
-	if (st > 0)
-	{
-		s = CString("");
-		for (int i = st; (i <= ed); i++)
-		{
-			ll = m_wndTopEdit.GetLine(x, i);
-			if ((ll < pl) || (x.Left(pl) != m_prompt)) s += x + CString("\r\n");
-		}
-	}
-	if (s.GetLength() > 0) ExecLuaString(s, TRUE);
-	AddCommand(a);
-	return TRUE;
-}
-
-void CMainFrame::AddCommand(CString &s)
-{
-	CString x; int t = 0;
-	CString e("\r\n");
-	m_wndTopEdit.GetLine(x, -1);
-	x.TrimRight();
-	s.TrimRight(); s.TrimLeft();
-	if (s.GetLength() > 0)
-	{
-		if (x == m_prompt)
-			t = 1;
-		else if (s.GetLength() > 0)
-			t = 3;
-		else
-			t = 2;
-	}
-	else
-	{
-		if (x.GetLength() < 1)
-			t = 4;
-		else if (x != m_prompt)
-			t = 5;
-	}
-	x = m_cmd->GetCmdVar(CString("_PROMPT"), CString(">"));
-	x += CString(" ");
-	switch (t)
-	{
-	case 1:
-		m_wndTopEdit.AppendText(s + e + x);
-		break;
-	case 2:
-		m_wndTopEdit.AppendText(x + s + e + x);
-		break;
-	case 3:
-		m_wndTopEdit.AppendText(e + x + s + e + x);
-		break;
-	case 4:
-		m_wndTopEdit.AppendText(x);
-		break;
-	case 5:
-		m_wndTopEdit.AppendText(e + x);
-		break;
-	default:
-		break;
-	}
-}
-
-void CMainFrame::ExecLuaString(CString &s, BOOL cmd /*=FALSE*/)
+int CMainFrame::GetLower(void)
 {
 	lua_State* L = *m_lua;
+	int ll; CString s;
+	BOOL cd = FALSE;
+
+	CheckEditStatus();
+	if (m_wndBotEdit.GetWindowTextLength() < 1) {lua_pushboolean(L, FALSE); return 1;}
+	if (!m_ED) {lua_pushboolean(L, FALSE); return 1;}
+	m_ED = FALSE; CheckEditStatus();
+
+	int ed = m_wndBotEdit.GetLineCount();
+	CString x("");
+	for (int i = 1; (i <= ed); i++)
+	{
+		ll = m_wndBotEdit.GetLine(s, i);
+		x += s + CString("\r\n");
+		s.TrimLeft(); s.TrimRight();
+		if (s.GetLength() > 0) cd = TRUE;
+	}
+	if (!cd) {lua_pushboolean(L, FALSE); return 1;}
+	if (luaX_loadstring(L, x, TEXT("[ScriptPane]")) == LUA_OK) {
+		m_cmd->SetCmdEnvironment();
+		return 1;
+	} else {
+	    lua_pushnil(L); lua_insert(L, -2);
+	    return 2;
+	}
+}
+
+void CMainFrame::PrepExec(LPCTSTR cmd)
+{
+	RemovePrompt();
+	if ((m_wndSplitter.GetActivePane() == 1)||(m_wndTopEdit.GetSelStartLine() < m_wndTopEdit.GetLineCount())) {
+		AddPrompt();
+		m_wndTopEdit.AppendText(cmd);
+		m_wndTopEdit.AppendText(CString("\r\n"));
+	}
+}
+
+void CMainFrame::GoCommand(void)
+{
+	int x; CString t;
+	x = m_wndTopEdit.GetSelStartLine();
+	for (int i = x - 1; (i >= 0); i--) {
+		if ((m_wndTopEdit.GetLine(t, i) > 0) && (t.Left(m_prompt.GetLength()) == m_prompt)) {
+			m_wndSplitter.SetActivePane(0);
+			m_wndTopEdit.SetSelStartLine(i);
+			m_wndTopEdit.SetSelFullLines();
+			return;
+		}
+	}
+}
+
+void CMainFrame::GoLine(int line)
+{
+	m_wndSplitter.SetActivePane(1);
+	m_wndBotEdit.SetSelStartLine(line);
+	m_wndBotEdit.SetSelFullLines();
+}
+
+BOOL CMainFrame::EditScript(LPCTSTR nm)
+{
+	CPathString y(nm); 
+	if (LoadResource(nm)) return TRUE;
+	if (y.Left(1) == CString("\\")) {
+		y = CPathString(ExePath);
+		y.PathAppend(CString(nm));
+	} else {
+		y.PathRemoveExtension();
+		y = m_cmd->FindLuaLib(y);
+	}
+	if (y.GetLength() <= 0) return FALSE;
+    return LoadFile(y);
+}
+
+void CMainFrame::EvaluateSelection()
+{
+	lua_State* L = *m_lua;
+	CString tx; int p1, p2, sp, ln;
+	JHCEdit* ed = (m_wndSplitter.GetActivePane() == 0)? &m_wndTopEdit : &m_wndBotEdit;
+	if (ed->GetSelLength() == 0) {
+		ed->GetSel(p1, p1);
+		ed->SetSelStartLine();
+		ed->GetSel(sp, sp);
+		ed->SetSelFullLines();
+		p1 = p1 - sp;
+	} else {
+		p1 = -1;
+		ed->GetSel(sp, p2);
+	}
+	ln = ed->GetSelLength();
+	ed->GetString(tx);
+	if (m_cmd->CheckCmdField(TEXT("onevaluate"), LUA_TFUNCTION)) {
+		m_cmd->GetCmdVar(TEXT("onevaluate"));
+		luaX_pushstring(L, tx);
+		if (p1 >= 0) lua_pushinteger(L, p1); else lua_pushnil(L);
+		p1 = p2 = -1;
+		if (lua_pcall(L, 2, 2, 0) == LUA_OK) {
+			if (lua_isnumber(L, -2)) p1 = lua_tointeger(L, -2);
+			if (lua_isnumber(L, -1)) p2 = lua_tointeger(L, -1);
+			lua_pop(L, 2);
+			if (p2 < 0) p2 = p1;
+			if (p2 < p1) p2 = p1;
+			if ((p2 - p1) > ln) p2 = p1 + ln;
+			if (p1 >= 0) {ed->SetSel(sp + p1, sp + p2);}
+		} else {
+			WriteError(CString(lua_tostring(L, -1)));
+			lua_pop(L, 1);
+		}
+	}
+}
+
+void CMainFrame::ExecLuaString(CString &s, BOOL cmd, LPCTSTR ctx)
+{
+	lua_State* L = *m_lua;
+	CString cx = CString(TEXT("Immediate"));
+	if (ctx != NULL) cx = CString(ctx);
 	IncUI();
 	int top = lua_gettop(L);
 	SetRunning();
-	int r = luaX_loadstring(L, s, TEXT("Immediate"));
+	int r = luaX_loadstring(L, s, cx);
 
 	if (r == 0)
 	{													//|F
 		if (cmd) m_cmd->SetCmdEnvironment();
 		r = lua_pcall(L, 0, 1, 0);						//|R
-		if ((r == 0) && (lua_isstring(L, -1))) WriteMessage(CString(lua_tostring(L, -1)));
+		if ((r == 0) && (lua_isstring(L, -1))) WriteMessage(CString(lua_tostring(L, -1)),TRUE,TRUE);
 	}
 	if (r != 0)
 	{
 		CString err(luaL_optstring(L, -1, "Error running immediate script."));
-		WriteError(err);
+		WriteError(err, TRUE);
 	}
 	else
 	{
@@ -579,6 +643,8 @@ void CMainFrame::ExecLuaString(CString &s, BOOL cmd /*=FALSE*/)
 void CMainFrame::ClearTop(void)
 {
 	m_wndTopEdit.SetWindowTextW(TEXT(""));
+	CString nm("onreportclear");
+	if (m_cmd->CheckCmdField(nm, LUA_TFUNCTION)) ExecLuaString(nm + CString("()"), TRUE, NULL);
 	AddPrompt();
 	m_wndTopEdit.SetFocus();
 }
@@ -586,29 +652,211 @@ void CMainFrame::ClearTop(void)
 void CMainFrame::AddPrompt(void)
 {
 	CString s;
-	int ll = m_wndTopEdit.GetLine(s);
 	int pl = m_prompt.GetLength();
-	if (pl == 0) {m_prompt.LoadString(IDS_PROMPT); pl = m_prompt.GetLength();}
+	if (pl == 0) m_prompt.LoadString(IDS_PROMPT);
+	m_prompt = m_cmd->GetCmdVar(CString("_PROMPT"), m_prompt);
+	pl = m_prompt.GetLength();
+	int ll = m_wndTopEdit.GetLine(s, -1);
 	if ((ll >= pl) && (s.Left(pl) == m_prompt))
 	{
 		s = s.Mid(pl);
 		s.TrimLeft(); s.TrimRight();
+		if (s.GetLength() == 0)
+		{
+			m_wndTopEdit.ReplaceLine(m_prompt + CString(" "), -1);
+			return;
+		}
 	}
+	if (m_wndTopEdit.GetSelStartLine() == 0) m_wndTopEdit.AppendText(_T("\r\n"));
+	m_wndTopEdit.AppendText(m_prompt + CString(" "));
+}
+
+void CMainFrame::RemovePrompt(void)
+{
+	CString x;
+	m_wndTopEdit.GetLine(x,-1);
+	x.TrimRight();
+	if (x == m_prompt)
+		m_wndTopEdit.DeleteLine(-1);
 	else
-	{
-		m_prompt = m_cmd->GetCmdVar(CString("_PROMPT"), m_prompt);
-		s.TrimLeft(); s.TrimRight();
-		s = m_prompt + CString(" ") + s;
+		WriteMessage(TEXT("\n"),TRUE,TRUE);
+}
+
+void CMainFrame::CheckEditStatus()
+{
+	RECT r; int c; CPathString cfn;
+	switch (m_FS) {
+	case 1:
+		m_status.GetPaneRect(ID_DEFAULT_PANE, &r);
+		c = (r.right - r.left);
+		if (c > 0) {
+			cfn = CString(m_FN);
+			cfn.PathCompactPath(m_status.GetDC(), c);
+			m_status.SetPaneText(ID_DEFAULT_PANE, cfn);
+		}
+		break;
+	case 2:
+		m_status.SetPaneText(ID_DEFAULT_PANE, CString("RES: ") + m_FN);
+		break;
+	default:
+		m_status.SetPaneText(ID_DEFAULT_PANE, CString("NO FILE"));
+		break;
 	}
-	if (m_prompt.GetLength() == 0) m_prompt.LoadString(IDS_PROMPT);
-	m_wndTopEdit.ReplaceLine(s);
+}
+
+BOOL CMainFrame::LoadFile(LPCTSTR name)
+{
+	HANDLE h; BYTE buf[256]; DWORD n; LARGE_INTEGER fs; BOOL revert = FALSE;
+	CPathString fn(name);
+
+	CheckEditStatus();
+
+	if (!fn.PathFileExists()) return FALSE;
+
+	if (m_FD && (m_FN == CString(name)))
+	{
+		if (MessageBox(_T("Revert to the disk file losing the changes in the lower pane?"),
+				_T("Winsh.lua"), (16*2 + 4) | MB_TASKMODAL | MB_SETFOREGROUND) == 7) return FALSE;
+		revert = TRUE;
+	}
+	h = CreateFile(fn, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (h == INVALID_HANDLE_VALUE) return FALSE;
+	GetFileSizeEx(h, &fs);
+	if ((!revert) && (fs.QuadPart < 1) && (m_wndBotEdit.GetWindowTextLength() > 0))
+	{
+		if (m_FS == 1)
+		{
+			if (MessageBox(_T("Save existing content of lower pane to this empty file?"),
+				_T("Winsh.lua"), (16*2 + 4) | MB_TASKMODAL | MB_SETFOREGROUND) == 7)
+			{   // Offer to save to original file, discard editor content:
+				SaveFile(TRUE);
+				m_wndBotEdit.SetWindowText(TEXT(""));
+				m_FD = FALSE; m_ED = FALSE; m_wndBotEdit.SetModify(FALSE);
+			} else
+			{  //  Keep content, mark file as dirty so content will be saved to it:
+				m_FD = TRUE;
+			}
+		} else {
+			if (MessageBox(_T("Save existing content of lower pane to this empty file (otherwise content will be lost)?"),
+				_T("Winsh.lua"), (16*2 + 4) | MB_TASKMODAL | MB_SETFOREGROUND) == 7)
+			{   // Discard content:
+				m_wndBotEdit.SetWindowText(TEXT(""));
+				m_FD = FALSE; m_ED = FALSE; m_wndBotEdit.SetModify(FALSE);
+			} else
+			{   // Keep content, mark file as dirty so content will be saved to it:
+				m_FD = TRUE;
+			}
+		}
+		m_FS = 1; m_FN = CString(name);
+		CheckEditStatus();
+		CloseHandle(h);
+		return TRUE;
+	}
+
+    // Allow user to abort if existing content cannot be saved:
+	if ((!revert) && (!SaveFile(TRUE))) {
+	    if (MessageBox(_T("Existing content of lower pane will be lost. Continue?"),
+				_T("Winsh.lua"), (16*2 + 4) | MB_TASKMODAL | MB_SETFOREGROUND) == 7)
+	    {
+		  CloseHandle(h);
+		  return FALSE;
+	    }
+	}
+	m_wndBotEdit.SetWindowText(TEXT(""));
+	m_FD = FALSE; m_ED = FALSE; m_wndBotEdit.SetModify(FALSE);
+	m_wndBotEdit.LockWindowUpdate(TRUE);
+	while (::ReadFile(h, &buf, 255, &n, NULL)) {
+		if (n < 1) break;
+		buf[n] = 0;
+		m_wndBotEdit.AppendText(CString(buf));
+	}
+	m_wndBotEdit.LockWindowUpdate(FALSE);
+	CloseHandle(h);
+	m_wndBotEdit.SetSel(0, 0, FALSE);
+	m_FD = FALSE; m_ED = TRUE; m_FS = 1; m_wndBotEdit.SetModify(FALSE);
+	m_FN = CString(name);
+	CheckEditStatus();
+	return TRUE;
+}
+
+BOOL CMainFrame::SaveFile(BOOL ask /*=TRUE*/)
+{
+	HANDLE h; BYTE* buf; DWORD n; int ll; int bs; int rs; CString s; int lc;
+
+	CheckEditStatus();
+
+	if (!m_FD) 
+		return TRUE;
+
+	if (ask) {
+		if (m_FS != 1)
+		{
+			return (MessageBox(_T("No file to save script changes to. Cancel and drag empty file here to save. Continue, loosing changes?"),
+				_T("Winsh.lua"), (16*2 + 4) | MB_TASKMODAL | MB_SETFOREGROUND) != 7);
+		} else
+		{
+			if (MessageBox(CString("Save File?\n") + m_FN, _T("Winsh.lua"), (16*2 + 4) | MB_TASKMODAL | MB_SETFOREGROUND) == 7) return TRUE;
+		}
+	}
+	h = CreateFile(m_FN, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (h == INVALID_HANDLE_VALUE) {
+		DWORD er = ::GetLastError();
+		return FALSE;
+	}
+	::SetEndOfFile(h);
+	lc = m_wndBotEdit.GetLineCount();
+	for (int i = 1; (i <= lc); i++)
+	{
+		ll = m_wndBotEdit.GetLine(s, i);
+		ll = s.GetLength();
+		bs = WideCharToMultiByte(CP_THREAD_ACP, 0, s, ll + 1, NULL, 0, NULL, NULL);
+		buf = new BYTE[bs];
+		rs = WideCharToMultiByte(CP_THREAD_ACP, 0, s, ll + 1, (LPSTR)buf, bs, NULL, NULL);
+		::WriteFile(h, buf, rs-1, &n, NULL);
+		if (i < lc) ::WriteFile(h, "\r\n", 2, &n, NULL);
+		delete buf;
+	}
+	CloseHandle(h);
+	m_FD = FALSE;
+	CheckEditStatus();
+	return TRUE;
+}
+
+BOOL CMainFrame::LoadResource(LPCTSTR resname)
+{
+	HRSRC hRes; HGLOBAL hResL; char* buf; DWORD sz;
+	CheckEditStatus();
+	HMODULE hM = _Module.GetResourceInstance();
+	CString name(resname);
+	hRes = FindResource(hM, name, m_rt);
+	if (hRes == NULL) return FALSE;
+	if (!SaveFile(FALSE))
+	{ // Allow user to abort if existing content cannot be saved:
+	    if (MessageBox(_T("Existing content of lower pane will be lost. Continue?"),
+			_T("Winsh.lua"), (16*2 + 4) | MB_TASKMODAL | MB_SETFOREGROUND) == 7)
+				return FALSE;
+	}
+	m_wndBotEdit.SetWindowText(TEXT(""));
+	sz = ::SizeofResource(hM, hRes);
+	hResL = ::LoadResource(hM, hRes);
+	if (hResL == NULL) return FALSE;
+	buf = (char*)LockResource(hResL);
+	m_wndBotEdit.AppendText(CString(buf, sz));
+	m_wndBotEdit.SetSel(0, 0, FALSE);
+	m_FD = FALSE; m_ED = TRUE; m_FS = 2; m_wndBotEdit.SetModify(FALSE);
+	m_FN = CString(name);
+	CheckEditStatus();
+	return TRUE;
 }
 
 void CMainFrame::ClearBot(void)
 {
-	m_wndBotEdit.SetWindowText(TEXT(""));
-	CString nm("onreportclear");
-	if (m_cmd->CheckCmdField(nm, LUA_TFUNCTION)) ExecLuaString(nm + CString("()"), TRUE);
+	if (SaveFile()) {
+		m_wndBotEdit.SetWindowText(TEXT(""));
+	    m_FD = FALSE; m_ED = FALSE; m_FS = 0; m_wndBotEdit.SetModify(FALSE);
+		m_FN = CString();
+		CheckEditStatus();
+	}
 }
 
 void CMainFrame::ReportMem()
@@ -924,26 +1172,19 @@ void CMainFrame::SetReportMode(UINT r, UINT e)
 	m_errmode = e;
 }
 
-BOOL CMainFrame::SetFile(LPCTSTR fnn, BOOL clr/* = FALSE*/)
+BOOL CMainFrame::SetFile(LPCTSTR fnn, UINT opt /*= 0*/)
 {
-	CString fn(fnn);
-	int p = fn.ReverseFind('\\'); CString file; CString path;
-	if (p > 0)
-	{
-		path = fn.Left(p + 1);
-		file = fn.Mid(p + 1);
-	}
-	else
-	{
-		path = ExePath;
-		file = fn;
-	}
-	if (!PathIsDirectory(path)) {return FALSE;}
-	m_file = path + file;
+	CPathString fn(fnn);
+	fn.ExpandEnvironment();
+	if (fn.PathIsRelative()) fn.PathCombine(ExePath);
+	fn.PathCanonicalize();
+	if (ISOPTION(opt, 2)) fn.CreatePath();
+	if (ISOPTION(opt, 1)) fn.MakeNameUnique();
+	m_file = fn;
 	HANDLE h = CreateFile(m_file, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (h == INVALID_HANDLE_VALUE) {m_file = CString(""); return FALSE;}
 	CloseHandle(h);
-	m_clr = clr;
+	m_clr = ISOPTION(opt, 0);
 	return TRUE;
 }
 
@@ -967,23 +1208,27 @@ void CMainFrame::WriteFile(CString& msg)
 	CloseHandle(h);
 }
 
-void CMainFrame::WriteMessage(CString& s, BOOL nl/* = TRUE*/)
+void CMainFrame::WriteMessage(LPCTSTR s/* = NULL*/, BOOL nl/* = TRUE*/, BOOL fg/* = FALSE*/)
 {
 	CString ss;
-	if (nl)
-		ss.Format(_T("%s\r\n"), s);
-	else
-		ss = s;
-	if ((m_repmode & ERM_GUI) != 0)
+	UINT rm = m_repmode;
+	if (fg)
+#if defined SF_CONSOLE
+		rm = ERM_STDIO;
+#else
+		rm = ERM_GUI;
+#endif
+	if (s != NULL) if (nl) ss.Format(_T("%s\r\n"), s); else ss = s;
+	if ((rm & ERM_GUI) != 0)
 	{
 		if (!IsWindowVisible())
 		{
 			ShowWindow(SW_NORMAL);
 			IncUI();
 		}
-		m_wndBotEdit.AppendText(ss);
+		m_wndTopEdit.AppendText(ss);
 	}
-	if ((m_repmode & ERM_REPORT) != 0)
+	if ((rm & ERM_REPORT) != 0)
 	{
 		m_paras->EnterCS();
 		if (!m_paras->visible) IncUI();
@@ -991,47 +1236,54 @@ void CMainFrame::WriteMessage(CString& s, BOOL nl/* = TRUE*/)
 		m_paras->LeaveCS();
 		m_paras->SendMessageDown(WM_USER, WF_WRITE, 0);
 	}
-	if ((m_repmode & ERM_STDIO) != 0)
+	if ((rm & ERM_STDIO) != 0)
 	{
 		WriteConsole(STD_OUTPUT_HANDLE, ss);
 	}
-	if ((m_repmode & ERM_FILE) != 0)
+	if ((rm & ERM_FILE) != 0)
 	{
 		WriteFile(ss);
 	}
-	if ((m_repmode & ERM_DEBUGGER) != 0)
+	if ((rm & ERM_DEBUGGER) != 0)
 	{
 		OutputDebugString(ss);
 	}
 }
 
-void CMainFrame::WriteError(CString& s)
+void CMainFrame::WriteError(CString& s, BOOL fg/*= FALSE*/)
 {
 	LastError = s;
+	UINT em = m_errmode;
+	if (fg)
+#if defined SF_CONSOLE
+		em = ERM_STDIO;
+#else
+		em = ERM_GUI;
+#endif
 	if (_procret == 0) _procret = EXIT_FAILURE;
 	PostMessage(GT_ERROR);
 
 	CString ss;
 	ss.Format(_T("ERROR: %s\r\n"), s);
 
-	if (((m_errmode & ERM_GUI) != 0) || ((m_errmode & ERM_REPORT) != 0))
+	if (((em & ERM_GUI) != 0) || ((em & ERM_REPORT) != 0))
 	{
 		if (!IsWindowVisible())
 		{
 			ShowWindow(SW_NORMAL);
 			IncUI();
 		}
-		m_wndBotEdit.AppendText(ss);
+		m_wndTopEdit.AppendText(ss);
 	}
-	if ((m_errmode & ERM_STDIO) != 0)
+	if ((em & ERM_STDIO) != 0)
 	{
 		WriteConsole(STD_ERROR_HANDLE, ss);
 	}
-	if ((m_errmode & ERM_FILE) != 0)
+	if ((em & ERM_FILE) != 0)
 	{
 		int i = 1;
 	}
-	if ((m_errmode & ERM_DEBUGGER) != 0)
+	if ((em & ERM_DEBUGGER) != 0)
 	{
 		OutputDebugString(ss);
 	}
@@ -1041,8 +1293,9 @@ void CMainFrame::WriteError(CString& s)
 void CMainFrame::SetReportWindow(int act, int px, int py)
 {
 	int x = px; int y = py;
-	CRect wr;
-	CRect bd;
+	JHCRect wr;
+	JHCRect bd;
+	JHCRect vs;
 	m_paras->EnterCS();
 	wr = m_paras->rect;
 	m_paras->LeaveCS();
@@ -1062,22 +1315,19 @@ void CMainFrame::SetReportWindow(int act, int px, int py)
 		m_paras->LeaveCS();
 		m_paras->SendMessageDown(WM_USER, WF_MOVE, 0);
 		break;
-	case 3: // "position"
-		bd.left = GetSystemMetrics(SM_XVIRTUALSCREEN); bd.right = bd.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);	
-		bd.top = GetSystemMetrics(SM_YVIRTUALSCREEN); bd.bottom = bd.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
-		wr.MoveToX(x);
-		wr.MoveToY(y);
-		if (wr.left < bd.left) wr.MoveToX(bd.left);
-		if (wr.top < bd.top) wr.MoveToY(bd.top);
-		if (wr.right > bd.right) wr.MoveToX(bd.right - wr.Width());
-		if (wr.bottom > bd.bottom) wr.MoveToY(bd.bottom = wr.Height());
+	case 3: // "position" (X,Y)
+		vs = JHCRect(GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN),
+          bd.left + GetSystemMetrics(SM_CXVIRTUALSCREEN),bd.top + GetSystemMetrics(SM_CYVIRTUALSCREEN));
+		wr.MoveToXY(vs.left+x, vs.top+y);
+		if (wr.right > vs.right) wr.right = vs.right;
+		if (wr.bottom > vs.bottom) wr.bottom = vs.bottom;
 		m_paras->EnterCS();
 		m_paras->rect = wr;
 		m_paras->LeaveCS();
 		m_paras->SendMessageDown(WM_USER, WF_MOVE, 0);
 		break;
-	case 4: // "bottomright"
-		wr = PutWindow(wr.Width(), wr.Height());
+	case 4: // "position" (keyed)
+		wr = PutWindow(wr.Width(), wr.Height(), x);
 		m_paras->EnterCS();
 		m_paras->rect = wr;
 		m_paras->LeaveCS();
@@ -1358,10 +1608,57 @@ int CMainFrame::ExecChunk(int parms, LPCTSTR context)
 	ReportMem();
 	return r;
 }
-	
+
+static void ReadInventoryFile(lua_State* L, LPCTSTR fn)
+{
+	CPathString p(fn); CString lb;
+	HANDLE hFile = INVALID_HANDLE_VALUE; BYTE buf[40]; DWORD n;
+	if (!p.PathIsDirectory() && p.PathFileExists()) {
+		hFile = CreateFile(p, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile != INVALID_HANDLE_VALUE) {
+			::ReadFile(hFile, &buf, 40, &n, NULL);
+			CloseHandle(hFile);
+			buf[n] = 0; lb = CString(buf);
+			if (lb.Left(2) == CString("--")) lb = lb.Mid(2); else lb = CString("[Unlabeled]");
+			n = lb.FindOneOf(TEXT("\n\r")); if (n < 40) lb = lb.Left(n);
+			lb.TrimLeft(); lb.TrimRight();
+		}
+		p.PathStripPath(); p.PathRemoveExtension();
+		luaX_pushstring(L, p);
+		luaX_pushstring(L, lb);
+		lua_settable(L, -3);
+	}
+}
+
 int CMainFrame::GetInventory(int type)
 {
-	return m_lua->GetInventory(type);
+	if (type == INV_KEY_FIL) {
+		HANDLE hFind = INVALID_HANDLE_VALUE;
+		WIN32_FIND_DATA ffd;
+		lua_State* L = *m_lua;
+		CPathString p(ExePath);
+		p.PathAppend(ExeName);
+		p = p + LuaExt;
+		lua_newtable(L);
+		ReadInventoryFile(L, p);
+		if (LibPath.GetLength() > 0) {
+			p = CPathString(LibPath);
+			p.PathAppend(CString("*"));
+			p = p + LuaExt;
+			hFind = FindFirstFile(p, &ffd);
+			if (hFind != INVALID_HANDLE_VALUE) {
+				do {
+					p = CPathString(LibPath);
+					p.PathAppend(CString(ffd.cFileName));
+					ReadInventoryFile(L, p);
+				} while (FindNextFile(hFind, &ffd) != 0);
+				FindClose(hFind);
+			}
+		}
+		return 1;
+	} else {
+		return m_lua->GetInventory(type);
+	}
 }
 
 #pragma endregion

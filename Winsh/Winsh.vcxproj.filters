@@ -18,11 +18,11 @@
     <Filter Include="Header Files\Configs">
       <UniqueIdentifier>{bd6b872c-3d31-464d-acc6-c6ec881e267c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files">
+    <Filter Include="Header Files\Resource Files">
       <UniqueIdentifier>{eaebc460-4a50-4979-8deb-488324316370}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;jpg;jpeg;jpe;manifest</Extensions>
     </Filter>
-    <Filter Include="Resource Files\Libraries">
+    <Filter Include="Header Files\Resource Files\Libraries">
       <UniqueIdentifier>{70f69f7d-1583-4feb-b6d3-461bf69f3583}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -167,75 +167,78 @@
     <ClInclude Include="JHCMultiPaneStatusBar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="JHCRect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\init-cmd.lua">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\init.lua">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\lock.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\lua-std.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="Libraries\LibGC.lua">
-      <Filter>Resource Files\Libraries</Filter>
+      <Filter>Header Files\Resource Files\Libraries</Filter>
     </None>
     <None Include="Libraries\LibShell.lua">
-      <Filter>Resource Files\Libraries</Filter>
+      <Filter>Header Files\Resource Files\Libraries</Filter>
     </None>
     <None Include="res\key.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\safe.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="C:\Users\John\Desktop\VS2010ImageLibrary\Actions\ico_format\WinVista\cut.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\delete.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\copy.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\paste.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\undo.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\help.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="C:\Users\johnh_000\Desktop\lock_48.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\icon2.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="Libraries\LibTask.lua">
-      <Filter>Resource Files\Libraries</Filter>
+      <Filter>Header Files\Resource Files\Libraries</Filter>
     </None>
     <None Include="Libraries\LibClass.lua">
-      <Filter>Resource Files\Libraries</Filter>
+      <Filter>Header Files\Resource Files\Libraries</Filter>
     </None>
     <None Include="res\lock48.ico">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </None>
     <None Include="res\cut.ico">
       <Filter>Header Files</Filter>
     </None>
     <None Include="Libraries\LibRegistry.lua">
-      <Filter>Resource Files\Libraries</Filter>
+      <Filter>Header Files\Resource Files\Libraries</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Winsh.rc">
-      <Filter>Resource Files</Filter>
+      <Filter>Header Files\Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
 </Project>

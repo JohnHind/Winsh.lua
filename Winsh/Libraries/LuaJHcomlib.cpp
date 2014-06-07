@@ -167,6 +167,10 @@ static int LuaComSendCommand(lua_State* L)
 	}
 	lua_remove(L, 2);
 	cc->bytes = 0;
+	if (lua_isnoneornil(L, 2)){
+		lua_pushboolean(L, TRUE);
+		return 1;
+	}
 	return LuaComWaitForInput(L);
 }
 

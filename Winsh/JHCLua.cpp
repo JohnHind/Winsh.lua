@@ -83,7 +83,7 @@ BOOL CALLBACK luaX_resenm(HMODULE hm, LPCTSTR ty, LPTSTR nm, LONG_PTR lp)
 	if (size > 0)
 		lua_pushlstring(L, buf + 2, size - 2);
 	else
-		lua_pushboolean(L, TRUE);
+		lua_pushstring(L, "[Unlabeled]");
 	lua_settable(L, -3);
 	return TRUE;
 }

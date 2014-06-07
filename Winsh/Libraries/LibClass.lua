@@ -175,22 +175,41 @@ do  -- Class 'List' (extends partial implementation in C)
 			if sv <= p then
 				-- Insert size <= above part (partition the above part)
 				p = t - sv
-				for i=0, t-p-1 do self[t+i] = self[p+i] end
+				for i=0, t-p-1 do
+				  --print("C1", p+i .. " => " .. t+i)
+				  self[t+i] = self[p+i]
+				end
 				p = ip + sv
-				for i=t-ip-sv-1,0,-1 do self[p+i] = self[ip+i] end
-				for i=0, sv-1 do self[ip+i] = v[1+i] end
+				for i=t-ip-sv-1,0,-1 do
+				  --print("C2", ip+i .. " => " .. p+i)
+				  self[p+i] = self[ip+i]
+				end
+				for i=0, sv-1 do
+				  --print("C3", i+1 .. " V=> " .. ip+i)
+				  self[ip+i] = v[1+i]
+				end
 			else
 				-- Insert size > above part (partition the insert)
 				p = p + 1
-				for i=0, sv-p do self[t+i] = v[p+i] end
+				for i=0, sv-p do
+				  --print("C4", p+i .. " V=> " .. t+i)
+				  self[t+i] = v[p+i]
+				end
 				if t > ip then
 					local b = t + (sv - p) + 1
-					for i=0, t-ip-1 do self[b+i] = self[ip+i]; self[ip+i] = v[i+1] end
+					for i=0, t-ip-1 do
+					  --print("C5", ip+i .. "=>" .. b+i, i+1 .. " V=> " .. ip+i)
+					  self[b+i] = self[ip+i]; 
+					  self[ip+i] = v[i+1]
+					end
 				end
 			end
 		else
 			-- Insert size == 1
-			for i = t-1, ip, -1 do self[i+1] = self[i] end
+			for i = t-1, ip, -1 do
+			  --print("C6", i .. " => " .. i+1)
+			  self[i+1] = self[i]
+			end
 			self[ip] = v
 		end
 	end

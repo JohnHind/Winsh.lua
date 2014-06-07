@@ -1890,16 +1890,21 @@ if (typeof(wikifyPlainText)==&quot;undefined&quot;) window.wikifyPlainText=funct
 if (typeof($)=='undefined') { function $(id) { return document.getElementById(id.replace(/^#/,'')); } }
 //}}}</pre>
 </div>
-<div title="Interactive Console" creator="John Hind" modifier="John Hind" created="201005292219" modified="201402211440" changecount="7">
-<pre>The interactive console appears if one of the [[Winsh Executables]] with the ''Windows Subsystem Flag'' is run without finding a script. It also appears if an error occurs in a script or if the {{{print}}} script function is used after changing the output mode using {{{winsh.outputmode('gui')}}}. Finally, there is a [[command-line]] switch which can be used to force the interactive console.
+<div title="Interactive Console" creator="John Hind" modifier="John Hind" created="201005292219" modified="201406041122" changecount="26">
+<pre>The interactive console shows if one of the [[Winsh Executables]] with the ''Windows Subsystem Flag'' is run without finding a script. It also appears when necessary to show script errors (by default) and to show the output of the {{{print}}} script function if the {{{winsh.outputmode('gui')}}} option has been selected. Finally, there is a [[command-line]] switch which can be used to show it unconditionally.
 
-The interactive console consists of an upper editable window into which Lua commands and scripts can be entered and a lower read-only window which shows the output from {{{print}}} commands and error messages. The console uses a special Lua environment which has read-access to the normal environment used by the scripting, but which does not change that environment (unless the scripting environment table is explicitly referenced). This special environment provides a number of additional features to assist with debugging. Most of these features are defined in the '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource and can be added to or customised by editing this resource (see [[LUA Script Resources]]). This section assumes the default '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource shipped in the Winsh.lua executable files has not been changed.
+The interactive console has two panes. The upper green-on-black pane allows entry of single-line script commands and displays script output and error messages. Lines commencing with the {{{&gt;}}} prompt are executed by pressing '''enter''' with the cursor anwhere in the line. The lower black-on-white pane is a simple text editor for multi-line scripts. The script in the lower pane is executed prior to any command from the upper pane, but only if it has changed since last executed or since the scripting environment was reset.
 
-Lines in the top window which begin with the command prompt ({{{&gt;}}} by default) are executed when the enter key is pressed with the cursor anywhere in the line. The prompt can be toggled on or off a line by pressing the {{{F3}}} key, or simply deleted or typed in. Lines without a prompt are treated as multi-line scripts and executed by pressing {{{F5}}}. If some lines are selected, only those lines are executed, otherwise all lines (which do not have command prompts) are executed.
-
-Lines which have an {{{=}}} character after the prompt and in front of an expression are processed prior to execution to display the result of the expression. The processor (which is also defined in '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''') produces a useful string from all Lua data types including itemising the contents of tables. As a shortcut, you can highlight an expression in either window and press {{{F2}}}, which copies the expression as a new command in the upper window prefixing it with {{{=}}} and executing it. You can use this to display the contents of tables within tables etc.
+The console uses a special Lua environment which has read-access to the normal environment used by the scripting, but which does not change that environment (unless the scripting environment table is explicitly referenced). This special environment provides a number of additional features to assist with debugging. Most of these features are defined in the '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource and can be added to or customised by editing this resource (see [[LUA Script Resources]]). This section assumes the default '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource shipped in the Winsh.lua executable files has not been changed.
 
 The ''Help'' menu contains commands to show various pieces of information including an inventory of resources available in the executable file. This information is supplied by functions defined in the '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource, which may be customised as required.
+
+An evaluation function ({{{onevaluate}}} in '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''') is invoked when the enter key is pressed in the upper pane, when a double-click is made in either pane, or when the ''Evaluate Selected'' menu item is invoked on a selection in either pane. The supplied handler provides a number of features:
+# On a line in the upper pane with a command prompt, the like is copied as a new command (unless it is already the last line) and executed as described above. If there is an {{{=}}} character between the command prompt and the command, the Lua code is pre-processed to display the value of the expression, including enumerating the contents of tables.
+# On a line in the upper pane which is an error message, attempts to find the source of the error and highlight it in the upper or lower pane.
+# On a line in the inventory or help text, attempts to open any file name, resource name or URL in the lower pane or in a browser.
+# On a selection, attempts to open the text as a file name, a resource name or a URL and failing that, to execute the text as a Lua expression using the processor described in 1 above. This is useful for displaying the values of variables and drilling down into nested tables.
+There are no file selection dialogs, however files may be explicitly loaded by dragging them from an explorer window onto the interactive console. Modifications to scripts loaded from files can be saved back to the same file. Contents of the editor pane can also be saved by dragging an empty file onto the window. There are menu options to load side-by-side files or folders (creating them if they do not already exist). Finally, files or script resources may be loaded by placing the cursor anywhere in an error message and pressing {{{enter}}}. It is necessary to save changed resource scripts to a file and then replace them in the executable file using a [[Resource Editor]].
 </pre>
 </div>
 <div title="Introduction" creator="John Hind" modifier="John Hind" created="201005272040" modified="201403240925" tags="startup" changecount="11">
@@ -2487,7 +2492,7 @@ local list = List{&quot;one&quot;,&quot;two&quot;,&quot;three&quot;}
 for item in list do print(item) end
 }}}</pre>
 </div>
-<div title="Lua" creator="John Hind" modifier="John Hind" created="201005292145" modified="201402211532" changecount="28">
+<div title="Lua" creator="John Hind" modifier="John Hind" created="201005292145" modified="201404182257" changecount="30">
 <pre>Lua is an open-source procedural scripting language with a fairly standard syntax and a number of interesting non-standard features such as multiple return values from functions and the use of a single, highly flexible and efficient associative array type as the sole data structuring method. The language is fully defined in ''Lua Reference Manual 5.2'' available online at http://www.lua.org/manual/ or in print from Amazon.com. For a more discursive treatment ''Programming in Lua, 2nd Edition'' and ''Lua Programming Gems'' are both warmly recommended (both are available in print from Amazon.com and revenue from sales helps to support Lua language development).
 
 The version of Lua implemented in Winsh.lua is Lua 5.2 as described in the above references, but a number of minor additions and modifications have been made. The term ''Winsh Lua'' refers to Lua 5.2 with these changes and with the additional libraries shipped in the [[Winsh Executables]]. The bracketed references below are to sections in ''Lua Reference Manual 5.2''.
@@ -2528,9 +2533,9 @@ The {{{tonumber}}} function is replaced by one that behaves the same except that
 The more rarely used and specialised global functions provided by the Basic Functions standard library have been relocated to a new {{{lua}}} table.  The following code documents this and provides compatibility if required:
 {{{
 local collectgarbage = lua.collectgarbage
-local dofile = lua.dofile
+local dofile = lua.dofile -- winsh.loadscript recommended
 local load = lua.load
-local loadfile = lua.loadfile
+local loadfile = lua.loadfile -- winsh.loadscript recommended
 local pcall = lua.pcall
 local _VERSION = lua._VERSION
 local xpcall = lua.xpcall
@@ -3844,12 +3849,12 @@ It is important to recognise that although Winsh.lua can be event-driven, it is 
 Resident Applications will almost always be implemented on one of the [[Winsh Executables]] with the Windows Subsystem flag.
 </pre>
 </div>
-<div title="Resource Editor" creator="John Hind" modifier="John Hind" created="201005292249" modified="201402171115" changecount="2">
+<div title="Resource Editor" creator="John Hind" modifier="John Hind" created="201005292249" modified="201404182214" changecount="7">
 <pre>A resource editing application may be used to change the resources stored in a copy of one of the [[Winsh Executables]] to produce a customised version or a complete application. I use the excellent freeware ''XN Resource Editor'' by Colin Wilson. Colin is no longer developing this, but it continues to be available from http://portableapps.com/apps/utilities/xn_resource_editor_portable.
 * [[LUA Script Resources]]
 * [[String Table Resources]]
 * [[Icon Resources]]
-</pre>
+To embed script resources using ''XN Resource Editor'', first create the script in a file which should be named with the resource name in block capitals and the extension ''.LUA'' (for example, a file named ''START.LUA'' becomes a resource named ''START''). Next start XN Resource Editor and open a copy of one of the Winsh executables. On the ''Resource'' menu, take the option ''Import User Resource'' and navigate to the script file prepared earlier. Save the file and exit. Note that when replacing an edited script resource, it is important to delete the old version before importing the new version.</pre>
 </div>
 <div title="SaveAsPlugin" modifier="John Hind" created="200602030909" modified="201210142022" tags="systemConfig ImportExportPackage excludeLists excludeSearch excludeMissing" changecount="7">
 <pre>/***
@@ -5015,11 +5020,12 @@ for elem in set do print(tostring(elem)) end
 }}}
 </pre>
 </div>
-<div title="Shell Library" creator="John Hind" modifier="John Hind" created="201006021947" modified="201402211937" changecount="2">
+<div title="Shell Library" creator="John Hind" modifier="John Hind" created="201006021947" modified="201404011356" changecount="5">
 <pre>The Shell Library gives Lua scripting access broadly to the facilities exposed by the Windows Explorer. This includes full access to the shell namespace (including the file folder hierarchy) and to drive letters.
 !!Functions
 [[shell.powerstatus]]
 [[shell.platform]]
+[[shell.scandevices]]
 [[shell.shutdown]]
 !!Classes
 [[Drive Class]]
@@ -7371,14 +7377,14 @@ The classes generated by this function may be called with no parameters or with 
 Close the com port if it is open (otherwise does nothing).
 </pre>
 </div>
-<div title="com:delay" creator="John Hind" modifier="John Hind" created="201006051922" modified="201402092233" changecount="2">
+<div title="com:delay" creator="John Hind" modifier="John Hind" created="201006051922" modified="201404101444" changecount="3">
 <pre>!com:delay(milliseconds)
-Delay execution for the specified number of milliseconds. This blocks execution of the main thread and is designed for short delays to assist with protocol scheduling.
+Delay execution for the specified number of milliseconds. This blocks execution of the main thread and is designed for short delays to assist with protocol timing.
 </pre>
 </div>
-<div title="com:getdata" creator="John Hind" modifier="John Hind" created="201006051949">
+<div title="com:getdata" creator="John Hind" modifier="John Hind" created="201006051949" modified="201404101441" changecount="1">
 <pre>!dat = com:getdata()
-Return a string comprising the characters in the reception buffer. The string length will be the number returned by the last [[com:sendcommand]], [[com:waitforinput]] or non-blocking reception function.
+Return a string comprising the characters in the reception buffer. The string length will be the number returned by the last [[com:sendcommand]], [[com:waitforinput]] or passed to the function registered using [[com:onmessage]] or [[com:oninput]].
 </pre>
 </div>
 <div title="com:oninput" creator="John Hind" modifier="John Hind" created="201006051953">
@@ -7413,15 +7419,15 @@ com:close()
 }}}
 </pre>
 </div>
-<div title="com:sendcommand" creator="John Hind" modifier="John Hind" created="201006051945" modified="201402092239" changecount="2">
+<div title="com:sendcommand" creator="John Hind" modifier="John Hind" created="201006051945" modified="201404101414" changecount="4">
 <pre>!res = com:sendcommand(cmd, [resp [, tout]])
-Sends the string ''cmd'' to the connected device and optionally blocks until a response is received. It is also possible to wait for input without sending anything by passing an empty string as the first parameter.
+Clears the reception buffer, sends the string ''cmd'' to the connected device and optionally blocks until a response is received. It is also possible to wait for input without sending anything by passing an empty string as the first parameter.
 
-If ''resp'' is omitted, returns immediately the ''cmd'' string has been sent. If ''resp'' is a number, waits until that number of characters has been received. If ''resp'' is a string, waits until a sequence of characters matching the string have been received.
+If ''resp'' is omitted, returns immediately the ''cmd'' string has been sent. If ''resp'' is a number, waits until that number of characters has been received. If ''resp'' is a string, waits until a sequence of characters matching the string have been received. If present, ''tout'' must be a timeout value in milliseconds which defaults to {{{1000}}} (one second) if omitted.
 
-If present, ''tout'' must be a timeout value in milliseconds which defaults to {{{1000}}} (one second) if omitted. Prior to waiting for a response, sendcommand clears the reception buffer ready for a new message.
+Returns the number of characters in the buffer once the response condition has been met, or {{{nil}}} if the condition is not met (due to a timeout or buffer overflow). If no response condition is given, returns {{{true}}} immediately the data has been sent.
 
-Returns the number of characters in the buffer once the response condition has been met, or {{{nil}}} if the condition is not met (due to a timeout or buffer overflow).
+Once this method returns, the received data can be recovered using [[com:getdata]]. [[com:waitforinput]] can be used to wait for more data.
 </pre>
 </div>
 <div title="com:setxx" creator="John Hind" modifier="John Hind" created="201006051956" modified="201402092233" changecount="1">
@@ -7484,12 +7490,11 @@ print(s1, n1, b1, s2)
 A Lua callable object ([[Command Class]] object, object of [[DelegateList Class]] or a simple Lua function for example) assigned to this field will be called when the drive changes (added or removed or a volume is mounted or dismounted).
 </pre>
 </div>
-<div title="drive:ejectvolume" creator="John Hind" modifier="John Hind" created="201006022008" modified="201402211951" changecount="4">
+<div title="drive:ejectvolume" creator="John Hind" modifier="John Hind" created="201006022008" modified="201404011404" changecount="6">
 <pre>!res = drive:ejectvolume([fixed] [, timeout])
 Dismounts and, if supported, ejects the volume in the drive. ''Fixed'' is a Boolean parameter which, if {{{true}}}, allows an attempt to be made to dismount a drive even if it is fixed. This may be necessary for some e-sata and caddied drives. ''Timeout'' is the amount of time in milliseconds to wait for a volume lock (default is {{{10000}}}, ten seconds). The method returns a numeric result code. {{{0}}} means total success, negative means the volume was dismounted but could not be ejected, positive means that the volume could not be dismounted (usually because it is in use).
 
-''Note:'' If this method fails on Windows Vista or later with ''res'' = {{{2}}}, the reason will usually be that administrator privileges are required. One way of achieving this is with the [[winsh.spawn]] function with the '''admin''' key. The other common failure code is {{{3}}} which means that some other process has a file open on the drive.
-</pre>
+''Note:'' If this method fails on Windows Vista or later with ''res'' = {{{2}}}, the reason will usually be that administrator privileges are required. One way of achieving this uses the [[winsh.spawn]] function with the '''admin''' key. The other common failure code is {{{3}}} which means that some other process has a file open on the drive.</pre>
 </div>
 <div title="drive:emptybin" creator="John Hind" modifier="John Hind" created="201009041333" modified="201402092059" changecount="1">
 <pre>!ok = drive:emptybin()
@@ -7554,9 +7559,9 @@ Return the type of drive and information about the volume (if any) in the drive.
 ''serial'' is a Number, the volume serial number (a unique identifier fixed when a volume is formatted).
 </pre>
 </div>
-<div title="frame:place" creator="John Hind" modifier="John Hind" created="201006021915" modified="201402141611" changecount="5">
+<div title="frame:place" creator="John Hind" modifier="John Hind" created="201006021915" modified="201404122226" changecount="7">
 <pre>!pframe = frame:place([placement [,wframe]])
-Returns a new frame which places frame ''wframe'' within this frame. The ''placement'' parameter must be one of: '''lefttop''' (the default), '''leftcenter''', '''leftbottom''', '''centertop''', '''center''', '''centerbottom''', '''righttop''', '''rightcenter''', '''rightbottom'''. If ''wframe'' is missing or if it is a point, the return frame is a point. If ''wframe'' is larger than this frame, it is reduced to the size of this frame. The position of ''wframe'' has no effect on the returned frame.
+Returns a new frame which places frame ''wframe'' within this frame. The ''placement'' parameter must be one of: '''center''' (the default); '''centertop'''; '''righttop''', '''rightcenter''', '''rightbottom''', '''centerbottom''', '''leftbottom''', '''leftcenter''' or '''lefttop'''. If ''wframe'' is missing or if it is a point, the return frame is a point. If ''wframe'' is larger than this frame, it is reduced in size to fit within this frame. The position of ''wframe'' has no effect on the returned frame.
 {{{
 window = task.Frame(0,0,200,100)
 print(task.virtualscreen():place('center', window))
@@ -7690,7 +7695,7 @@ print(lst:concat(&quot;,&quot;))
 }}}
 </pre>
 </div>
-<div title="list:insert" creator="John Hind" modifier="John Hind" created="201005152140" modified="201403241050" changecount="8">
+<div title="list:insert" creator="John Hind" modifier="John Hind" created="201005152140" modified="201403261714" changecount="9">
 <pre>!list:insert(index, item)
 
 If ''item'' is a List object, the elements in this list are inserted into the list, otherwise, ''item'' is inserted as a single entry.
@@ -7699,34 +7704,46 @@ The elements are inserted into the list starting at the given ''index''. Negativ
 
 Expansion of inserted lists may be overridden for derived classes by providing a {{{__whole}}} metafield. If the object being inserted has this metafield and it tests {{{true}}}, then it is inserted as a single entry, the value being the object itself.
 {{{
-lst = List(&quot;one&quot;, &quot;two&quot;, &quot;three&quot;)
-lst:insert(-2, &quot;one.one&quot;)
-lst:insert(1, List{&quot;zero.one&quot;,&quot;zero.two&quot;})
-print(lst:concat())
+for i = -5, 6 do
+  t1 = List{&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;}
+  t2 = List{&quot;A&quot;, &quot;B&quot;, &quot;C&quot;}
+  t1:insert(i, t2)
+  print(i, t1:concat(&quot;;&quot;))
+end
+for i = -3, 4 do
+  t1 = List{&quot;1&quot;, &quot;2&quot;, &quot;3&quot;}
+  t1:insert(i, &quot;A&quot;)
+  print(i, t1:concat(&quot;;&quot;))
+end
 }}}
 </pre>
 </div>
-<div title="list:remove" creator="John Hind" modifier="John Hind" created="201005152147" modified="201402100956" changecount="8">
+<div title="list:remove" creator="John Hind" modifier="John Hind" created="201005152147" modified="201405201635" changecount="9">
 <pre>!list:remove([from [, to]])
 
-Removes the items starting at the ''from'' index and ending with the ''to'' index and shifts subsequent items down to fill the gap. ''from'' defaults to the last item and ''to'' defaults to the ''from'' item. Negative indexes are supported with {{{-1}}} meaning the last item and so forth. Note that unlike {{{table.remove}}}, {{{list:remove}}} does not return the removed values. If you want this, use {{{list:unpack}}} followed by {{{list:remove}}}.
+Removes the items starting at the ''from'' index and ending with the ''to'' index and shifts subsequent items down to fill the gap. ''from'' defaults to the last item and ''to'' defaults to the ''from'' item. Negative indexes are supported with {{{-1}}} meaning the last item and so forth. Note that unlike {{{table.remove}}}, {{{list:remove}}} does not return the removed values. If you want this, use [[list:unpack]] followed by {{{list:remove}}}.
 {{{
 lst = List(&quot;one&quot;, &quot;two&quot;, &quot;three&quot;)
 lst:remove(2)
 }}}</pre>
 </div>
-<div title="list:reverse" creator="John Hind" modifier="John Hind" created="201312041626" changecount="1">
+<div title="list:reverse" creator="John Hind" modifier="John Hind" created="201312041626" modified="201405201640" changecount="3">
 <pre>!list:reverse()
-Reverses the order of the elements in the List object in place (i.e. without creating a new object). The first object in the List becomes the last, the last the first and so on.</pre>
+Reverses the order of the elements in the List object in place (i.e. without creating a new object). The first object in the List becomes the last, the last the first and so on.
+{{{
+lst = List{&quot;one&quot;,&quot;two&quot;,&quot;three&quot;}
+lst:reverse()
+print(lst:concat())
+}}}</pre>
 </div>
-<div title="list:sort" creator="John Hind" modifier="John Hind" created="201005152153" modified="201402100954" changecount="4">
+<div title="list:sort" creator="John Hind" modifier="John Hind" created="201005152153" modified="201405201630" changecount="5">
 <pre>!list:sort([compfunc])
 
 Sorts the List in place, changing the index numbers to reflect the sort order of the values. By default the Lua {{{&lt;}}} operator is used to compare values, but optionally ''compfunc'' may be provided to give a different sort order. This function must take two values and return Boolean {{{true}}} if the first should be placed before the second.
 {{{
 lst = List(10.6, 3, 20.15, 3.6)
 lst:sort()
-print(lst)
+print(lst:concat())
 }}}
 
 </pre>
@@ -7851,6 +7868,15 @@ Returns the following three pieces of information about the computer power:
 :Number or ''nil'', Estimated endurance of the computer in seconds from {{{100}}} percent charge, ''nil'' if there is no battery.
 {{{
 print(shell.powerstatus())
+}}}</pre>
+</div>
+<div title="shell.scandevices" creator="John Hind" modifier="John Hind" created="201404010940" modified="201404011401" changecount="8">
+<pre>!res = shell.scandevices()
+This has the same effect as ''scan for hardware changes'' in Device Manager. It is included  primarily to support hot-swapping of hard disks when the chipset does not detect insertion automatically (this is the case with many early SATA implementations). Returns {{{0}}} on success, or a numeric error code.
+
+Return code {{{51}}} is likely on Vista and above if the Winsh process does not have administrator privilege. One way of achieving this uses the [[winsh.spawn]] function with the ''admin'' key.
+{{{
+r = winsh.spawn([[&quot;-e return shell.scandevices()&quot;]], 'admin', 'sync')
 }}}</pre>
 </div>
 <div title="shell.shutdown" creator="John Hind" modifier="John Hind" created="201008292009" modified="201402211944" changecount="6">
@@ -8358,9 +8384,13 @@ The return value is a string which matches a component in the button set (for ex
 print(winsh.messagebox(&quot;Message&quot;, 'question', 'yes+no+cancel', 2))
 }}}</pre>
 </div>
-<div title="winsh.mutex" creator="John Hind" modifier="John Hind" created="201005302234" modified="201402211652" changecount="5">
+<div title="winsh.mutex" creator="John Hind" modifier="John Hind" created="201005302234" modified="201404131332" changecount="6">
 <pre>!res = winsh.mutex(scope [,ident [,command]])
-Return Boolean ''true'' if this is the only instance of this process or ''false'' if one or more other instances are found. Optionally pass a command to any other instances that are found. For processes to be considered the &quot;same&quot; all of the following must be true: They must exist within the same ''scope''; They must have the same file name (just the name, not the path); Both must have executed (or be executing) [[winsh.mutex]] with the same ''ident'' string parameter; and finally both must have the same ''UUID'' string in their string resources (which will be true unless this has been explicitly changed). Parameter ''scope'' is a string key (defaulting to ''desktop''), one of:
+Return Boolean ''true'' if this is the only instance of this process or ''false'' if one or more other instances are found. Optionally pass a command to any other instances that are found.
+
+For processes to be considered the &quot;same&quot; all of the following must be true: They must exist within the same ''scope''; They must have the same file name (just the name, not the path); Both must have executed (or be executing) [[winsh.mutex]] with the same ''ident'' string parameter; and finally both must have the same ''UUID'' string in their string resources (which will be true unless this has been explicitly changed).
+
+Parameter ''scope'' is a string key (defaulting to ''desktop''), one of:
 ;'''system'''
 :Unique to this computer.
 ;'''desktop'''
@@ -8369,6 +8399,7 @@ Return Boolean ''true'' if this is the only instance of this process or ''false'
 :Unique to this log-on (a given user may log-on more than once).
 ;'''user'''
 :Unique to all log-on sessions for this user.
+
 Parameter ''ident'' is an arbitrary string value which can be set differently to avoid two processes being considered identical.
 
 Parameter ''command'' is a string which constitutes a valid Winsh [[command-line]]. If this is supplied it will be sent to and executed on any other instances which are found (this does not restart the other instance, just schedules additional scripts or code to run when the process is next idle). Lua variables can be passed to the script executed in the other instances as ''vararg'' parameters by concatenating the result of [[winsh.ps]] at the end of the ''command'' string.
@@ -8444,17 +8475,28 @@ Example:
 print(winsh.ps(&quot;a string&quot;, nil, true, false, 123, &quot;another string&quot;))
 }}}</pre>
 </div>
-<div title="winsh.setfile" creator="John Hind" modifier="John Hind" created="201005302214" modified="201402171220" changecount="5">
-<pre>!res = winsh.setfile([name [,clear]])
+<div title="winsh.setfile" creator="John Hind" modifier="John Hind" created="201005302214" modified="201404131201" changecount="17">
+<pre>!res = winsh.setfile([name [, ...]])
 Set the file to be used for the ''file'' option of [[winsh.outputmode]] or to be read using the [[winsh.file]] iterator. With no parameters, restores the default which is '''stdin''' for [[winsh.file]] or the same as the ''void'' option for [[winsh.outputmode]].
 
-Parameter ''name'' must be the name with extension of the file which will be assumed to be in the same folder as the executable file unless a full path is supplied. Returns Boolean ''true'' if a new file was created, ''false'' if there was already a file of this name or if the file could not be created or opened. Normally, if you specify an existing file, new lines will be appended to it, however if you include Boolean ''true'' for the ''clear'' parameter, the file will be cleared immediately before writing the first new line.
+Parameter ''name'' must resolve to a full file path after processing. Any environment variables are expanded (as for [[winsh.environment]]) and then if the result is a relative path it is resolved relative to the path to the {{{winsh}}} executable.
+
+Following the name may be any combination of the following string keys in any order:
+;'''clear'''
+:Normally, if ''name'' resolves to an existing file, new lines will be appended to it, however if you include this option the file will be cleared immediately before writing the first new line.
+;'''unique'''
+:If ''name'' resolves to an existing file, the file name is made unique by appending a serial number and a new file is created.
+;'''build'''
+:Normally this function will fail if the path specified in ''name'' does not already exist. If this option is specified, any missing path folders will be iteratively created if possible.
+For compatability reasons, if the second parameter is other than a string and tests boolean {{{true}}}, the '''clear''' option is specified (and any further parameters are ignored).
+
+Returns Boolean ''true'' if the file is ready, ''false'' if the file could not be created or opened.
 {{{
-winsh.setfile(&quot;Test.txt&quot;, true)
-winsh.outputmode(&quot;file&quot;, &quot;gui&quot;)
+winsh.setfile(&quot;%G_EXENAME%.log&quot;, 'clear')
+winsh.outputmode('file', 'gui')
 print(&quot;Line 1&quot;)
 print(&quot;Line 2&quot;)
-winsh.outputmode(&quot;gui&quot;)
+winsh.outputmode('gui')
 for line in winsh.file() do print(&quot;Read: &quot; .. line) end
 }}}</pre>
 </div>
@@ -8466,9 +8508,11 @@ winsh.setidentity(&quot;The title of my app&quot;, &quot;lock&quot;)
 }}}
 </pre>
 </div>
-<div title="winsh.setreport" creator="John Hind" modifier="John Hind" created="201005302220" modified="201402211646" changecount="8">
+<div title="winsh.setreport" creator="John Hind" modifier="John Hind" created="201005302220" modified="201404131324" changecount="15">
 <pre>!winsh.setreport(act [,px [,py]])
 Performs various control actions on the Report Window according to the string key ''act'' using the optional parameters ''px'' and ''py''.
+
+The ''act'' parameter must be one of the following:
 ;'''clear'''
 :Clears the contents of the Report Window (optionally after delay ''px'').
 ;'''hide'''
@@ -8476,9 +8520,9 @@ Performs various control actions on the Report Window according to the string ke
 ;'''resize'''
 :Sets the size of the Report Window to ''px'' pixels wide and ''py'' pixels high. Value of 0 for either (which is the default) leaves that dimension unchanged.
 ;'''position'''
-:Sets the position of the Report Window on the virtual screen so the left side is ''px'' pixels from the left of the screen and the top is ''py'' pixels from the top. Both values default to 0.
+:Sets the position of the Report Window. If ''px'' is a number, it is the offset from the left side of the virtual screen and ''py'' is the offset from the top. If ''px'' is not a number it must be a string key, one of '''center'''; '''centertop'''; '''righttop'''; '''rightcenter'''; '''rightbottom'''; '''centerbottom'''; '''leftbottom'''; '''leftcenter''' or '''lefttop''' which positions the window on the primary monitor. In either case, the window is shrunk if necessary to fit, so you can fill the available screen size by first using '''resize''' with a very large number and then using '''position'''.
 ;'''bottomright'''
-:Positions the Report Window at the bottom right of the primary monitor.
+:DEPRECATED. Use {{{winsh.setreport('position', 'rightbottom')}}}.
 ;'''delete'''
 :Deletes the last line on the Report Window (useful for temporary messages).
 ;'''reset'''
@@ -8532,8 +8576,8 @@ startelevated(&quot;notepad.exe&quot;)
 }}}
 </pre>
 </div>
-<div title="winsh.taskicon" creator="John Hind" modifier="John Hind" created="201005151425" modified="201402041701" tags="[[winsh library]]" changecount="33">
-<pre>!winsh.taskicon(icon , rightmenu [,leftmenu][,cmds])
+<div title="winsh.taskicon" creator="John Hind" modifier="John Hind" created="201005151425" modified="201404131355" tags="[[winsh library]]" changecount="34">
+<pre>!winsh.taskicon(icon , rightmenu[ ,leftmenu][ ,cmds])
 Installs, changes or removes a taskbar notification icon and optionally assigns context menus to it. If ''icon'' is a string it must be the name of an icon resource in the exe file. Alternatively ''icon'' may be an object of [[Icon Class]] from the [[Shell Library]]. To remove a previously installed icon, pass Boolean ''false'' as the first (and only) parameter.
 
 ''rightmenu'' should be either an object of [[Menu Class]] to define a right-click menu or Boolean ''false'' for no menu.

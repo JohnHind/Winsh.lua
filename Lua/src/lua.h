@@ -1,5 +1,5 @@
 /*
-** $Id: lua.h,v 1.285 2013/03/15 13:04:22 roberto Exp $
+** $Id: lua.h,v 1.285.1.2 2013/11/11 12:09:16 roberto Exp $
 ** Lua - A Scripting Language
 ** Lua.org, PUC-Rio, Brazil (http://www.lua.org)
 ** See Copyright Notice at the end of this file
@@ -19,7 +19,7 @@
 #define LUA_VERSION_MAJOR	"5"
 #define LUA_VERSION_MINOR	"2"
 #define LUA_VERSION_NUM		502
-#define LUA_VERSION_RELEASE	"2"
+#define LUA_VERSION_RELEASE	"3"
 
 /* JH LUA_VARIANT Patch - add string in LUA_VARIANT macro - no effect if not defined */
 #ifdef LUA_VARIANT

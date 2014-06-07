@@ -3,6 +3,7 @@
 #define LUAGCLIB_BUILDING
 #include "LibClass.h"
 #include "LibGC.h"
+#include "..\JHCPathString.h"
 #include "..\LuaLibIF.h"
 #include "..\resource.h"
 
@@ -348,17 +349,17 @@ static UINT gc_packset(lua_State* L, int ix, const char* set[])
 	return x;
 }
 
-// P1 (string or table) Report destination, one "gcmodeset" key or a set.
-// P2 (string or table; opt) Error destination, one "gcmodeset" key or a set, if absent P1 is used.
-static const char* gcmodeset [] = {"void", "gui", "report", "stdio", "file", "debugger", NULL};
+// P1 (string or table) Report destination, one 'modeset' key or a set containing these keys.
+// P2 (string or table; opt) Error destination, one 'modeset' key or a set containing these keys, if absent P1 is used.
 static int gc_outputmode(lua_State* L)
 {
+    static const char* modeset [] = {"void", "gui", "report", "stdio", "file", "debugger", NULL};
 	WINSH_LUA(2)
 	lua_settop(L, 2);
-	UINT rf = gc_packset(L, 1, gcmodeset);
+	UINT rf = gc_packset(L, 1, modeset);
 	UINT ef = 0;
 	if ((lua_type(L, 2) == LUA_TSTRING) || (lua_type(L, 2) == LUA_TTABLE))
-		ef = gc_packset(L, 2, gcmodeset);
+		ef = gc_packset(L, 2, modeset);
 	else
 		ef = rf;
 	H->SetReportMode(rf, ef);
@@ -367,11 +368,15 @@ static int gc_outputmode(lua_State* L)
 
 static int gc_setfile(lua_State* L)
 {
+	static const char* options [] = {"clear", "unique", "build", NULL};
 	WINSH_LUA(3)
-	lua_settop(L, 2);
+	UINT opt;
 	CString fn(luaL_optstring(L, 1, ""));
-	BOOL clr = lua_toboolean(L, 2);
-	lua_pushboolean(L, H->SetFile(fn, clr));
+	if (lua_isstring(L, 2))
+	    opt = luaX_checkoptions(L, options, 2, T);
+	else
+		opt = (lua_toboolean(L, 2))? 1 : 0;
+	lua_pushboolean(L, H->SetFile(fn, opt));
 	return 1;
 }
 
@@ -396,33 +401,46 @@ static int gc_file(lua_State* L)
 	return 2;
 }
 
-// P1 (string, reportactions) The action to be applied to the report window.
-// P2 (number, optional) The Width or Left position of the window, or milliseconds to delay action.
+// P1 (string, 'actions') The action to be applied to the report window.
+// P2 (number or string, 'positions', optional) The Width position or Left position of the window, or milliseconds to delay action.
 // P3 (number, optional) The Height or Top position of the window.
-static const char* gc_reportactions [] = {"clear", "hide", "resize", "position", "bottomright", "delete", "reset", "running", "paused", "error", "done", "overlay", "minimise", NULL};
 static int gc_setreport(lua_State* L)
 {
+    static const char* actions [] = {"clear", "hide", "resize", "position", "bottomright", "delete", "reset", "running", "paused", "error", "done", "overlay", "minimise", NULL};
+    static const char* positions [] = {"center", "centertop", "righttop", "rightcenter", "rightbottom", "centerbottom", "leftbottom", "leftcenter", "lefttop", NULL};
 	WINSH_LUA(1)
-	int ac = luaL_checkoption(L, 1, "clear", gc_reportactions);
+	int ac = luaL_checkoption(L, 1, "clear", actions);
 	int px = 0;
+	int py = 0;
 	CString icon;
-	if (ac == 11)
-	{
+	switch (ac) {
+	case 3:
+	case 4:
+		if (lua_isnumber(L, 2)) {
+		  px = lua_tointeger(L, 2);
+		  py = luaL_optinteger(L, 3, 0);
+		  ac = 3;
+		} else {
+		  px = luaL_checkoption(L, 2, "center", positions);
+		  ac = 4;
+		}
+	    break;
+	case 11:
 		icon = CString(luaL_optstring(L, 2, ""));
 		H->SetOverlay(icon);
+		return 0;
+	default:
+		px = luaL_optinteger(L, 2, -1);
+		py = luaL_optinteger(L, 3, -1);
+		break;
+	}
+	if ((ac <= 1) && (px >= 100))
+	{
+		H->SetTimerMessage(GcRepAct + ac, px);
 	}
 	else
 	{
-		px = luaL_optinteger(L, 2, -1);
-		int py = luaL_optinteger(L, 3, -1);
-		if ((ac <= 1) && (px >= 100))
-		{
-			H->SetTimerMessage(GcRepAct + ac, px);
-		}
-		else
-		{
-			H->SetReportWindow(ac, px, py);
-		}
+		H->SetReportWindow(ac, px, py);
 	}
 	return 0;
 }
@@ -448,10 +466,10 @@ static int gc_lasterror(lua_State* L)
 // P1 (number) The Windows or Winsh message number which triggers the function.
 // P2 (function) The Lua function which will be run on the message.
 // P3 (optional number) If supplied, the message wParam value must also match this.
-// P4 (optional string) Specifies the message handler function to be used.
-static const char* gc_msgtranstypes [] = {"postl", "postw", "sendl", "sendw", NULL};
+// P4 (optional string, 'types') Specifies the message handler function to be used.
 static int gc_onevent(lua_State* L)
 {
+    static const char* types [] = {"postl", "postw", "sendl", "sendw", NULL};
 	WINSH_LUA(4)
 	lua_settop(L, 4);
 	WORD msg = luaL_checkinteger(L, 1);
@@ -459,12 +477,12 @@ static int gc_onevent(lua_State* L)
 	int hf = 0; WPARAM wp = 0;
 	if (lua_type(L, 3) == LUA_TSTRING)
 	{
-		hf = luaL_checkoption(L, 3, (msg < 1024)? "postl" : "sendl", gc_msgtranstypes);
+		hf = luaL_checkoption(L, 3, (msg < 1024)? "postl" : "sendl", types);
 		wp = 0;
 	}
 	else
 	{
-		hf = luaL_checkoption(L, 4, (msg < 1024)? "postl" : "sendl", gc_msgtranstypes);
+		hf = luaL_checkoption(L, 4, (msg < 1024)? "postl" : "sendl", types);
 		wp = luaL_optinteger(L, 3, 0);
 	}
 	lua_settop(L, 2);
@@ -536,14 +554,14 @@ static int gc_paramstring(lua_State* L)
 }
 
 // P1: String. Command-line to be run on the spawned Winsh process.
-// Pn: String [gcspset](Opt). Any number of string keys.
+// Pn: String, 'keys'(Opt). Any number of string keys.
 // R1: Boolean or Number. If the process could not be started for any reason,
 //     returns boolean false. If the process was run with the "sync" option,
 //     returns the process exit number from the process, otherwise boolean
 //     true (the process may still be running asynchronously).
-static const char* gcspset [] = {"admin", "sync", NULL};
 static int gc_spawn(lua_State* L)
 {
+    static const char* keys [] = {"admin", "sync", NULL};
 	WINSH_LUA(2)
 	CString sn = CString(luaL_optstring(L, 1, ""));
 	sn.TrimLeft(); sn.TrimRight();
@@ -553,7 +571,7 @@ static int gc_spawn(lua_State* L)
 	BOOL sync = FALSE;
 	for (int i = lua_gettop(L); (i > 1); i--)
 	{
-		switch(luaL_checkoption(L, i, NULL, gcspset))
+		switch(luaL_checkoption(L, i, NULL, keys))
 		{
 		case 0:
 			if (LOBYTE(GetVersion()) >= 6) admin = TRUE;
@@ -596,16 +614,16 @@ static int gc_spawn(lua_State* L)
 	return 1;
 }
 
-// P1: String [scopeset] (Def: 'desktop'). The scope of the exclusive group.
+// P1: String, 'scopes' (Def: 'desktop'). The scope of the exclusive group.
 // P2: String (Opt). If specified, instances are only unique if this string matches.
 // P3: String (Opt). If specified, is sent to the primary instance as a command-line.
 // R1: Boolean. True if this is the first instance, false if another instance was found.
-static const char* gcscopeset [] = {"system", "desktop", "session", "user", NULL};
 static int gc_mutex(lua_State* L)
 {
+    static const char* scopes [] = {"system", "desktop", "session", "user", NULL};
 	WINSH_LUA(1)
 	lua_settop(L, 3);
-	int scope = luaL_checkoption(L, 1, "desktop", gcscopeset);
+	int scope = luaL_checkoption(L, 1, "desktop", scopes);
 	CString uid(luaL_optstring(L, 2, ""));
 	CString cmd(luaL_optstring(L, 3, ""));
 	lua_pushboolean(L, H->Mutex(uid, scope, cmd));	
@@ -620,11 +638,9 @@ static int gc_environment(lua_State* L)
 	WINSH_LUA(2)
 	if (lua_isstring(L, 1))
 	{
-		CString s(lua_tostring(L, 1));
-		CString r("");
-		ExpandEnvironmentStrings(s.GetBuffer(s.GetLength()), r.GetBuffer(32767), 32767);
-		s.ReleaseBuffer(); r.ReleaseBuffer();
-		luaX_pushstring(L, r);
+		CPathString s(lua_tostring(L, 1));
+		s.ExpandEnvironment();
+		luaX_pushstring(L, s);
 	}
 	else
 	{
@@ -735,34 +751,34 @@ static int gc_taskicon(lua_State* L)
 
 //P1 - (String, "") Title text for balloon.
 //P2 - (String, "") Body text for balloon.
-//P3 - (String in gcballoonicons, "none") The icon to display in the balloon.
+//P3 - (String, 'icons', "none") The icon to display in the balloon.
 //P4 - (Number, 0) Timeout in milliseconds, 0 means infinite.
-static const char* gcballoonicons [] = {"none", "info", "exclamation", "stop", "winsh", NULL};
 static int gc_balloon(lua_State* L)
 {
+    static const char* icons [] = {"none", "info", "exclamation", "stop", "winsh", NULL};
 	WINSH_LUA(1)
 	CString mt(luaL_optstring(L, 1, ""));
 	CString ms(luaL_optstring(L, 2, ""));
-	int ic = luaL_checkoption(L, 3, "none", gcballoonicons);
+	int ic = luaL_checkoption(L, 3, "none", icons);
 	UINT to = luaL_optlong(L, 4, 0);
 	H->Balloon(mt, ms, to, (DWORD)ic);
 	return 0;
 }
 
 // P1		: String - The message to display in the message box.
-// P2(opt)	: String - One of the "messageicons" keys, the icon to show in the message box, default "none".
-// P3(opt)	: String - One of the "messagebuttons" keys, the set of buttons available in the message box, default "ok".
+// P2(opt)	: String, 'icons' - The icon to show in the message box, default 'none'.
+// P3(opt)	: String, 'buttons' - The set of buttons available in the message box, default 'ok'.
 // P4(opt)  : Number - Which of the buttons, counting from 1 at left, is the default button, default 1.
 // R1		: String - The text label of the button which the user pressed.
-static const char* gc_messageicons [] = {"none", "stop", "question", "exclamation", "asterisk", NULL};
-static const char* gc_messagebuttons [] = {"ok", "ok+cancel", "abort+retry+ignore", "yes+no+cancel", "yes+no",
-	"retry+cancel", "cancel+tryagain+continue", NULL};
 static int gc_messagebox(lua_State* L)
 {
+    static const char* icons [] = {"none", "stop", "question", "exclamation", "asterisk", NULL};
+    static const char* buttons [] = {"ok", "ok+cancel", "abort+retry+ignore", "yes+no+cancel", "yes+no",
+	    "retry+cancel", "cancel+tryagain+continue", NULL};
 	WINSH_LUA(1)
 	CString ms(luaL_checkstring(L, 1));
-	int ic = 16 * luaL_checkoption(L, 2, "none", gc_messageicons);
-	ic += luaL_checkoption(L, 3, "ok", gc_messagebuttons);
+	int ic = 16 * luaL_checkoption(L, 2, "none", icons);
+	ic += luaL_checkoption(L, 3, "ok", buttons);
 	int df = luaL_optinteger(L, 4, 1); df = (df < 1)? 1 : df; df = (df > 4)? 4 : df;
 	ic += 256 * (df - 1);
 
@@ -803,17 +819,17 @@ static int gc_messagebox(lua_State* L)
 
 //P1 (Function/Table/Userdata) The object to be executed when the hotkey is pressed.
 //P2 (Number) Virtual Key Code (see VK table in Lua annex) or ASCII code for '0'..'9' or 'A'..'Z'.
-//Px (String in gcmodset) Up to 4 strings representing key modifiers.
+//Px (String, 'mods') Up to 4 strings representing key modifiers.
 static int gc_hotkey(lua_State* L)
 {
-	static const char* gcmodset [] = {"alt", "ctrl", "shift", "win", NULL};
+	static const char* mods [] = {"alt", "ctrl", "shift", "win", NULL};
 	WINSH_LUA(2)
 	int n = 10;
 	UINT k = 0; UINT m = 0; INT b = -1;
 	if (!luaX_iscallable(L, 1)) luaL_error(L, "Hotkey parameter must be a callable object.");
 	for (int i = lua_gettop(L); (i > 2); i--)
 	{
-		switch(luaL_checkoption(L, i, NULL, gcmodset))
+		switch(luaL_checkoption(L, i, NULL, mods))
 		{
 		case 0:
 			m |= MOD_ALT;

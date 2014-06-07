@@ -18,8 +18,8 @@
 // compiling modules into the exe and optionally preloading them when Lua starts. Global symbols
 // may be deleted or decorated with documentation after loading.
 
-#define INV_KEY_EXE (1)
-#define INV_KEY_RES (2)
+#define INV_KEY_EXE (0)
+#define INV_KEY_RES (1)
 
 // Like lua_pushstring, but takes a CString and pushes it onto the stack as a Lua string.
 // Note: Conversion the other way is trivial e.g. CString s = CString(lua_tostring(L, 1));
@@ -63,11 +63,11 @@ LUALIB_API void luaX_showtable(lua_State* L, int ix, const char* label = 0);
 class ILuaLib
 {
 public:
-	// Write a message to the Error location.
-	virtual void WriteError(CString &s) = 0;
+	// Write a message to the Error location (if 'fg', always to the GUI console).
+	virtual void WriteError(CString &s, BOOL fg = FALSE) = 0;
 
-	// Write a message to the Message location.
-	virtual void WriteMessage(CString &s, BOOL nl = TRUE) = 0;
+	// Write a message to the Message location (if 'fg', always to the GUI console).
+	virtual void WriteMessage(LPCTSTR s, BOOL nl = TRUE, BOOL fg = FALSE) = 0;
 
 //internal:
 	size_t m_rm(int cmd = 0, size_t c = 0)
