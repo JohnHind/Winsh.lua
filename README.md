@@ -14,10 +14,10 @@ Packing options are designed to avoid the need for installation and to be locati
 
 A runtime package containing several alternative pre-built binaries and documentation can be downloaded here:
 
-The sources on this site can be built using Visual Studio 2010 or later, or probably in any C++ environment with some work. The sources comprise the following:
+The sources can be built using Microsoft Visual Studio Express 2013, or probably in any Windows C++ environment with some work. The sources comprise the following:
 
 Patched Lua sources and a project to build these into an object code library.
 
-Windows Template Library (WTL) sources unchanged from the WTL distribution, and the specific Grunt sources with a project to build the executables.
+Winsh sources with a project to build the executables.
 
-Lua is pure C code, WTL is C++ templates, Grunt is mostly C++ with some Lua embedded as resources.
+Before building the "dependencies" folder must be populated with ATL, WTL and other dependencies as instructed in the "dependencies.txt" file in the root folder.

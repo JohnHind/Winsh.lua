@@ -3,12 +3,20 @@
 
 #ifdef SF_CONSOLE
 #undef SF_WINDOWS
-#define SF_DESC "CONSOLE Subsystem Flag on "
+#ifdef SF_USELUADLL
+#define SF_DESC "CONSOLE Subsystem Flag; Using WinshLua.dll"
+#else
+#define SF_DESC "CONSOLE Subsystem Flag; Standalone Exe"
+#endif
 #else
 #ifndef SF_WINDOWS
 #define SF_WINDOWS
 #endif
-#define SF_DESC "WINDOWS Subsystem Flag"
+#ifdef SF_USELUADLL
+#define SF_DESC "WINDOWS Subsystem Flag; Using WinshLua.dll"
+#else
+#define SF_DESC "WINDOWS Subsystem Flag; Standalone Exe"
+#endif
 #endif
 
 #ifdef CF_MINIMUM

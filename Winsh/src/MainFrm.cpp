@@ -8,6 +8,16 @@ CString _StdinBuf = CString("");	  //Buffer for reading standard input channel.
 
 #pragma region Support Functions
 
+#ifdef SF_USELUADLL
+ExternC PfnDliHook __pfnDliFailureHook2;
+FARPROC WINAPI delayHookFailureFunc(unsigned dliNotify, PDelayLoadInfo pdli)
+{
+	MessageBox(NULL, TEXT("Unable to find WinshLua.dll"), TEXT("Winsh: Windows Lua Shell Scripting"), MB_OK);
+	AtlThrow(E_FAIL);
+	return NULL;
+}
+#endif
+
 CRect PutWindow(int w, int h, int posn/*= POS_BOTTOM_RIGHT*/)
 {
 	JHCRect r;
@@ -30,15 +40,14 @@ void CMainFrame::SetLibraryPaths()
 		x1 = LibPath + CString("?") + LuaExt;
 		if (LuaExt != CString(".LUA"))
 			x1 = x1 + CString(";") + LibPath + CString("?.LUA");
-		x2 = LibPath + CString("?.dll");
+		x2 = LibPath + CString("?.DLL");
 	}
 	else if (ExePath.GetLength() > 0)
 	{
 		x1 = ExePath + CString("?") + LuaExt;
 		if (LuaExt != CString(".LUA"))
 			x1 = x1 + CString(";") + ExePath + CString("?.LUA");
-		x2 = ExePath + CString("?.dll");
-		x2 = CString("!\?.dll");
+		x2 = ExePath + CString("?.DLL");
 	}
 	lua_getglobal(L, "package");
 	luaX_pushstring(L, x1);

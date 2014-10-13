@@ -2,243 +2,236 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{35816fed-74cd-4fec-89aa-3410d75e9bf1}</UniqueIdentifier>
-      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm</Extensions>
-    </Filter>
-    <Filter Include="Source Files\Libraries">
-      <UniqueIdentifier>{6be7e141-627f-46c1-bdd0-fa90a7da8944}</UniqueIdentifier>
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="Header Files">
-      <UniqueIdentifier>{0ead14ea-8462-47b2-8347-4faaa352e2b2}</UniqueIdentifier>
-      <Extensions>h;hpp;hxx;hm;inl;inc</Extensions>
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Libraries">
+      <UniqueIdentifier>{1f9f9cd3-a625-4f69-b1a2-e66560db2504}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\Libraries">
-      <UniqueIdentifier>{0f2d14a3-7ea6-4deb-8c8d-13c3c3c01cce}</UniqueIdentifier>
+      <UniqueIdentifier>{c7852faf-51b4-4c84-a47e-372de582415e}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\Configs">
-      <UniqueIdentifier>{bd6b872c-3d31-464d-acc6-c6ec881e267c}</UniqueIdentifier>
+      <UniqueIdentifier>{0c6bf493-0490-4beb-ae50-bebfa4f7565b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Resource Files">
-      <UniqueIdentifier>{eaebc460-4a50-4979-8deb-488324316370}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;jpg;jpeg;jpe;manifest</Extensions>
-    </Filter>
-    <Filter Include="Header Files\Resource Files\Libraries">
-      <UniqueIdentifier>{70f69f7d-1583-4feb-b6d3-461bf69f3583}</UniqueIdentifier>
+    <Filter Include="Resource Files\Libraries">
+      <UniqueIdentifier>{c86a2b88-4906-4fc2-95a0-117c0e734363}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MainFrm.cpp">
+    <ClCompile Include="src\CLuaCommandEnv.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stdafx.cpp">
+    <ClCompile Include="src\JHCEdit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libraries\CommBaseC.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Libraries\LibGC.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Libraries\LibShell.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Libraries\LibTask.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Libraries\LibTime.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Libraries\LuaJHcomlib.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="JHCEdit.cpp">
+    <ClCompile Include="src\JHCLua.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="JHCLua.cpp">
+    <ClCompile Include="src\MainFrm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CLuaCommandEnv.cpp">
+    <ClCompile Include="src\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Libraries\LibRegistry.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Libraries\LibClass.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Libraries\bitfield.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Libraries\LibTimer.cpp">
-      <Filter>Source Files\Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Winsh.cpp">
+    <ClCompile Include="src\Winsh.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\bitfield.cpp">
+      <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\LibClass.cpp">
+      <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\LibGC.cpp">
+      <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\LibRegistry.cpp">
+      <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\LibShell.cpp">
+      <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\LibTask.cpp">
+      <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\LibTime.cpp">
+      <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\LibTimer.cpp">
+      <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Libraries\LibComLink.cpp">
+      <Filter>Source Files\Libraries</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Configuration.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JHCEdit.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LuaLibIF.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MainFrm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WriteFrm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Libraries\CommBaseC.h">
+    <ClInclude Include="src\Libraries\bitfield.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\LibGC.h">
+    <ClInclude Include="src\Libraries\LibClass.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\LibShell.h">
+    <ClInclude Include="src\Libraries\LibGC.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\LibTask.h">
+    <ClInclude Include="src\Libraries\LibRegistry.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\LibTime.h">
+    <ClInclude Include="src\Libraries\LibShell.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\LuaJHcomlib.h">
+    <ClInclude Include="src\Libraries\LibTask.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\stdafx.h">
-      <Filter>Source Files\Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="CNameDlg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JHCPathString.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JHCCMenu.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JHCDropFiles.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JHCGUIThread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JHCNotifyIcon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JHCLua.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CLuaCommandEnv.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JHCMsgTrap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Libraries\LibRegistry.h">
+    <ClInclude Include="src\Libraries\LibTime.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\LibClass.h">
+    <ClInclude Include="src\Libraries\LibTimer.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\bitfield.h">
+    <ClInclude Include="src\Libraries\stdafx.h">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\LibTimer.h">
-      <Filter>Header Files\Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="Configs\Config-Standard.h">
+    <ClInclude Include="src\Configs\Config-Maximum.h">
       <Filter>Header Files\Configs</Filter>
     </ClInclude>
-    <ClInclude Include="Configs\Config-Maximum.h">
+    <ClInclude Include="src\Configs\Config-Standard.h">
       <Filter>Header Files\Configs</Filter>
     </ClInclude>
-    <ClInclude Include="JHCMultiPaneStatusBar.h">
+    <ClInclude Include="src\CLuaCommandEnv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="JHCRect.h">
+    <ClInclude Include="src\CNameDlg.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Configuration.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCCMenu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCDropFiles.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCEdit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCGUIThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCLua.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCMsgTrap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCMultiPaneStatusBar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCNotifyIcon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCPathString.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\JHCRect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LuaLibIF.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MainFrm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Winsh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\WinshLua.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\WriteFrm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Libraries\LibComLink.h">
+      <Filter>Header Files\Libraries</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\init-cmd.lua">
-      <Filter>Header Files\Resource Files</Filter>
+    <None Include="src\Libraries\LibClass.lua">
+      <Filter>Resource Files\Libraries</Filter>
+    </None>
+    <None Include="src\Libraries\LibGC.lua">
+      <Filter>Resource Files\Libraries</Filter>
+    </None>
+    <None Include="src\Libraries\LibRegistry.lua">
+      <Filter>Resource Files\Libraries</Filter>
+    </None>
+    <None Include="src\Libraries\LibShell.lua">
+      <Filter>Resource Files\Libraries</Filter>
+    </None>
+    <None Include="src\Libraries\LibTask.lua">
+      <Filter>Resource Files\Libraries</Filter>
     </None>
     <None Include="res\init.lua">
-      <Filter>Header Files\Resource Files</Filter>
+      <Filter>Resource Files</Filter>
     </None>
-    <None Include="res\lock.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\lua-std.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="Libraries\LibGC.lua">
-      <Filter>Header Files\Resource Files\Libraries</Filter>
-    </None>
-    <None Include="Libraries\LibShell.lua">
-      <Filter>Header Files\Resource Files\Libraries</Filter>
-    </None>
-    <None Include="res\key.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\safe.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="C:\Users\John\Desktop\VS2010ImageLibrary\Actions\ico_format\WinVista\cut.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\delete.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\copy.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\paste.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\undo.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\help.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="C:\Users\johnh_000\Desktop\lock_48.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\icon2.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="Libraries\LibTask.lua">
-      <Filter>Header Files\Resource Files\Libraries</Filter>
-    </None>
-    <None Include="Libraries\LibClass.lua">
-      <Filter>Header Files\Resource Files\Libraries</Filter>
-    </None>
-    <None Include="res\lock48.ico">
-      <Filter>Header Files\Resource Files</Filter>
-    </None>
-    <None Include="res\cut.ico">
-      <Filter>Header Files</Filter>
-    </None>
-    <None Include="Libraries\LibRegistry.lua">
-      <Filter>Header Files\Resource Files\Libraries</Filter>
+    <None Include="res\init-cmd.lua">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Winsh.rc">
-      <Filter>Header Files\Resource Files</Filter>
+    <ResourceCompile Include="src\Winsh.rc">
+      <Filter>Source Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\copy.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\cut.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\delete.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\help.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\key.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\lock.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\lock48.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\lua-std.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\paste.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\safe.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\undo.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

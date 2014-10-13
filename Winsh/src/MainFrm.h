@@ -4,6 +4,7 @@
 
 #include "resource.h"
 #include "WriteFrm.h"
+#include <delayimp.h>
 #include "JHCNotifyIcon.h"
 #include "JHCDropFiles.h"
 #include "JHCCMenu.h"
@@ -18,6 +19,8 @@
 #define INV_KEY_FIL (2)
 
 CRect PutWindow(int w = 400, int h = 400, int posn = POS_RIGHT_BOTTOM);
+
+FARPROC WINAPI delayHookFailureFunc(unsigned dliNotify, PDelayLoadInfo pdli);
 
 class CMainFrame : public CFrameWindowImpl<CMainFrame>, public CUpdateUI<CMainFrame>,
 		public CMessageFilter, public CMsgTrap, public CIdleHandler,
@@ -168,8 +171,8 @@ public:
 		CreateSimpleStatusBar();
 
 		m_status.SubclassWindow(m_hWndStatusBar);
-		int arrPanes[] = {ID_DEFAULT_PANE, IDR_STATUS_PANE0, IDR_STATUS_PANE1, IDR_STATUS_PANE2, IDR_STATUS_PANE3, IDR_STATUS_PANE4};
-		int arrWidths[] = {0, 100, 50, 120, 30, 30};
+		int arrPanes[] = { ID_DEFAULT_PANE, IDR_STATUS_PANE0, IDR_STATUS_PANE1, IDR_STATUS_PANE2, IDR_STATUS_PANE3, IDR_STATUS_PANE4 };
+		int arrWidths[] = { 0, 100, 50, 120, 30, 30 };
 		m_status.SetPanes(arrPanes, sizeof(arrPanes) / sizeof(int), false);
 		m_status.SetPaneWidths(arrWidths, sizeof(arrWidths) / sizeof(int));
 
@@ -185,11 +188,11 @@ public:
 		m_wndSplitter.Create(*this, rcDefault, NULL, 0, WS_EX_CLIENTEDGE);
 
 		// create the upper edit control
-		DWORD dwEditStyle = WS_CHILD | WS_VISIBLE | WS_VSCROLL |WS_HSCROLL
+		DWORD dwEditStyle = WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL
 			| ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE;
 		m_wndTopEdit.Create(m_wndSplitter, rcDefault, NULL, dwEditStyle);
 		m_wndTopEdit.SetFont((HFONT)::GetStockObject(SYSTEM_FIXED_FONT));
-		m_wndTopEdit.SetColors((COLORREF)RGB(0,0,0), (COLORREF)RGB(0,255,0));
+		m_wndTopEdit.SetColors((COLORREF)RGB(0, 0, 0), (COLORREF)RGB(0, 255, 0));
 		m_wndTopEdit.SetMargins(10, 10);
 		m_wndTopEdit.SetTabStops(16);
 		m_wndTopEdit.SetLimitText(-1);
@@ -197,7 +200,7 @@ public:
 		// create the lower edit control
 		m_wndBotEdit.Create(m_wndSplitter, rcDefault, NULL, dwEditStyle);
 		m_wndBotEdit.SetFont((HFONT)::GetStockObject(SYSTEM_FIXED_FONT));
-		m_wndBotEdit.SetColors((COLORREF)RGB(255,255,255), (COLORREF)RGB(0,0,0));
+		m_wndBotEdit.SetColors((COLORREF)RGB(255, 255, 255), (COLORREF)RGB(0, 0, 0));
 		m_wndBotEdit.SetMargins(10, 10);
 		m_wndBotEdit.SetTabStops(16);
 		m_wndBotEdit.SetLimitText(-1);
@@ -211,7 +214,7 @@ public:
 		m_hWndClient = m_wndSplitter;
 		UpdateLayout();
 		GetClientRect(&r);
-		m_wndSplitter.SetSplitterPos((r.bottom-r.top)/2);
+		m_wndSplitter.SetSplitterPos((r.bottom - r.top) / 2);
 
 		// register to accept dropped files:
 		AcceptDropFiles(true);
@@ -272,7 +275,15 @@ public:
 			((scpeaumid*)proc)(x);
 		}
 
-		// initialise Lua scripting
+		// If this executable uses Lua in a DLL, this allows that DLL to be found in a side-by-side directory.
+		// For this to work, the Linker for this executable must be configured to Delay Load WinshLua.dll.
+#ifdef SF_USELUADLL
+		SetDllDirectory(ExePath + ExeName + LuaExt); // This is additional to the normal search path
+		__pfnDliFailureHook2 = delayHookFailureFunc;
+		__HrLoadAllImportsForDll("WinshLua.dll");
+#endif
+
+		// Initialise Lua scripting
 		m_lua = new CLua<ILuaLibWinsh>(this, luaX_loads, luaX_preloads, luaX_postload);
 		IncUI();
 		OpenLua();

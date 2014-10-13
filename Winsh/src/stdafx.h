@@ -11,6 +11,16 @@
 #define _WIN32_IE		0x0600
 #define _RICHEDIT_VER	0x0200
 #define _ATL_USE_CSTRING_FLOAT
+#define _SUPPORT_DDK_ATL71
+
+// This enables build with ATL 7.1 from the DDK (to allow build with VS Express)
+#ifdef _SUPPORT_DDK_ATL71
+#if defined(_M_IX86) || defined(_M_AMD64)
+#pragma comment(lib, "atlthunk.lib")
+#elif defined(_M_IA64)
+#pragma comment(lib, "atl21asm.lib")
+#endif
+#endif // _WTL_SUPPORT_DDK_ATL71
 
 #include <atlbase.h>
 #include <atlapp.h>

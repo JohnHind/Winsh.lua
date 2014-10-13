@@ -1,42 +1,69 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lua", "Lua\Lua.vcxproj", "{68DBA24B-F850-4B81-B073-FD9FE28DA809}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Winsh", "Winsh\Winsh.vcxproj", "{4983E753-06BB-4935-A822-DA4CB341C334}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2013 for Windows Desktop
+VisualStudioVersion = 12.0.30723.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Winsh", "Winsh\Winsh.vcxproj", "{B589287A-04F3-477E-941B-806228180766}"
 	ProjectSection(ProjectDependencies) = postProject
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809} = {68DBA24B-F850-4B81-B073-FD9FE28DA809}
+		{9C78958F-3FF7-455C-9697-2AFA6435615E} = {9C78958F-3FF7-455C-9697-2AFA6435615E}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Lua", "Lua\Lua.vcxproj", "{9C78958F-3FF7-455C-9697-2AFA6435615E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{17AB5D9D-DEA1-4C44-88D3-360AC39B4F40}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		Dependencies\Dependencies.txt = Dependencies\Dependencies.txt
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FtdiLib", "FtdiLib\FtdiLib.vcxproj", "{752E5BCA-BAC4-4BBA-AF85-E77AA6EC8D97}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9C78958F-3FF7-455C-9697-2AFA6435615E} = {9C78958F-3FF7-455C-9697-2AFA6435615E}
 	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
-		R(Max Con)|Win32 = R(Max Con)|Win32
-		R(Max Win)|Win32 = R(Max Win)|Win32
-		R(Std Con)|Win32 = R(Std Con)|Win32
-		R(Std Win)|Win32 = R(Std Win)|Win32
+		MaxCS|Win32 = MaxCS|Win32
+		MaxWS|Win32 = MaxWS|Win32
+		StdCS|Win32 = StdCS|Win32
+		StdWD|Win32 = StdWD|Win32
+		StdWS|Win32 = StdWS|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.Debug|Win32.ActiveCfg = Debug|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.Debug|Win32.Build.0 = Debug|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Max Con)|Win32.ActiveCfg = Release|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Max Con)|Win32.Build.0 = Release|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Max Win)|Win32.ActiveCfg = Release|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Max Win)|Win32.Build.0 = Release|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Std Con)|Win32.ActiveCfg = Release|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Std Con)|Win32.Build.0 = Release|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Std Win)|Win32.ActiveCfg = Release|Win32
-		{68DBA24B-F850-4B81-B073-FD9FE28DA809}.R(Std Win)|Win32.Build.0 = Release|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.Debug|Win32.ActiveCfg = Debug|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.Debug|Win32.Build.0 = Debug|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Max Con)|Win32.ActiveCfg = Release (Max Con)|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Max Con)|Win32.Build.0 = Release (Max Con)|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Max Win)|Win32.ActiveCfg = Release (Max Win)|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Max Win)|Win32.Build.0 = Release (Max Win)|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Std Con)|Win32.ActiveCfg = Release (Std Con)|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Std Con)|Win32.Build.0 = Release (Std Con)|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Std Win)|Win32.ActiveCfg = Release (Std Win)|Win32
-		{4983E753-06BB-4935-A822-DA4CB341C334}.R(Std Win)|Win32.Build.0 = Release (Std Win)|Win32
+		{B589287A-04F3-477E-941B-806228180766}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B589287A-04F3-477E-941B-806228180766}.Debug|Win32.Build.0 = Debug|Win32
+		{B589287A-04F3-477E-941B-806228180766}.MaxCS|Win32.ActiveCfg = MaxCS|Win32
+		{B589287A-04F3-477E-941B-806228180766}.MaxCS|Win32.Build.0 = MaxCS|Win32
+		{B589287A-04F3-477E-941B-806228180766}.MaxWS|Win32.ActiveCfg = MaxWS|Win32
+		{B589287A-04F3-477E-941B-806228180766}.MaxWS|Win32.Build.0 = MaxWS|Win32
+		{B589287A-04F3-477E-941B-806228180766}.StdCS|Win32.ActiveCfg = StdCS|Win32
+		{B589287A-04F3-477E-941B-806228180766}.StdCS|Win32.Build.0 = StdCS|Win32
+		{B589287A-04F3-477E-941B-806228180766}.StdWD|Win32.ActiveCfg = StdWD|Win32
+		{B589287A-04F3-477E-941B-806228180766}.StdWD|Win32.Build.0 = StdWD|Win32
+		{B589287A-04F3-477E-941B-806228180766}.StdWS|Win32.ActiveCfg = StdWS|Win32
+		{B589287A-04F3-477E-941B-806228180766}.StdWS|Win32.Build.0 = StdWS|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.Debug|Win32.Build.0 = Debug|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.MaxCS|Win32.ActiveCfg = Release|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.MaxCS|Win32.Build.0 = Release|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.MaxWS|Win32.ActiveCfg = Release|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.MaxWS|Win32.Build.0 = Release|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.StdCS|Win32.ActiveCfg = Release|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.StdCS|Win32.Build.0 = Release|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.StdWD|Win32.ActiveCfg = ReleaseDll|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.StdWD|Win32.Build.0 = ReleaseDll|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.StdWS|Win32.ActiveCfg = Release|Win32
+		{9C78958F-3FF7-455C-9697-2AFA6435615E}.StdWS|Win32.Build.0 = Release|Win32
+		{752E5BCA-BAC4-4BBA-AF85-E77AA6EC8D97}.Debug|Win32.ActiveCfg = Debug|Win32
+		{752E5BCA-BAC4-4BBA-AF85-E77AA6EC8D97}.MaxCS|Win32.ActiveCfg = Release|Win32
+		{752E5BCA-BAC4-4BBA-AF85-E77AA6EC8D97}.MaxWS|Win32.ActiveCfg = Release|Win32
+		{752E5BCA-BAC4-4BBA-AF85-E77AA6EC8D97}.StdCS|Win32.ActiveCfg = Release|Win32
+		{752E5BCA-BAC4-4BBA-AF85-E77AA6EC8D97}.StdWD|Win32.ActiveCfg = Release|Win32
+		{752E5BCA-BAC4-4BBA-AF85-E77AA6EC8D97}.StdWD|Win32.Build.0 = Release|Win32
+		{752E5BCA-BAC4-4BBA-AF85-E77AA6EC8D97}.StdWS|Win32.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
