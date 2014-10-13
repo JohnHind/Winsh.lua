@@ -1,0 +1,30 @@
+Dependencies Instalation
+
+1. ATL
+
+If using the Express version of Visual Studio, obtain these from:
+WDK 7.1.0 download from
+http://www.microsoft.com/en-us/download/confirmation.aspx?id=11800
+Install the basic platform API then:
+copy all the files from the inc\atl71 directory to \Dependencies\inc
+copy all the files from the lib\ATL\i386 directory to \Dependencies\lib
+
+2. WTL
+
+Download WTL 9.0 from:
+http://wtl.sourceforge.net/
+Unpack and copy all the files from the Include directory to \Dependencies\inc
+
+3. cfgmgr32 (required for shell library)
+
+Obtain from WDK 7.1.0 as downloaded in step 1 above.
+copy \inc\api\cfgmgr32.h to \Dependencies\inc\cfgmgr32.h
+copy \lib\wxp\i386\cfgmgr32.lib to \Dependencies\lib\cfgmgr32.lib
+
+4. FTDI Library (if compiling FTDI library)
+
+Download http://www.ftdichip.com/Drivers/D2XX.htm (Latest 32-Bit package)
+copy \ftd2xx.h to \Dependencies\inc\ftd2xx.h
+copy \i386\ftd2xx.lib to \Dependencies\lib\ftd2xx.lib
+
+
