@@ -347,12 +347,12 @@ int LuaTimeCF(lua_State* L)
 	int ct = lua_tointeger(L, lua_upvalueindex(3));
 	lua_pushvalue(L, lua_upvalueindex(1));
 	lua_pushvalue(L, lua_upvalueindex(2));
-	int r = lua_pcall(L, 1, 0, 0);
-	if (r != 0)
+	if (lua_pcall(L, 1, 1, 0) != 0)
 	{
 		H->WriteError(CString("Time alarm callback: ") + CString(lua_tostring(L, -1)));
-		lua_pop(L, 1);
 	}
+	if ((lua_isboolean(L, -1)) && (!lua_toboolean(L, -1))) ct = 0;
+	lua_pop(L, 1);
 	if (ct > 0)
 	{
 		lua_pushinteger(L, --ct);

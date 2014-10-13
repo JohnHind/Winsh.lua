@@ -35,6 +35,9 @@
 //#define LUASHLIB_API
 // =========================================================================================
 
+#pragma comment(lib, "WtsApi32.lib")
+#pragma comment(lib, "cfgmgr32.lib")
+
 LUASHLIB_API int LUASHLIB_NGEN(luaopen_)(lua_State* L);
 
 // Add any additional library functions for use from "C" code below here (with LUALIB_API)

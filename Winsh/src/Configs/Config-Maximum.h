@@ -29,7 +29,7 @@ extern "C"
 #include "Libraries\LibTask.h"
 #include "Libraries\LibShell.h"
 #include "Libraries\LibRegistry.h"
-#include "Libraries\LuaJHcomlib.h"
+#include "Libraries\LibComLink.h"
 #include "Libraries\bitfield.h"
 #include "Libraries\LibTimer.h"
 
@@ -60,7 +60,7 @@ static const luaX_Reg luaX_preloads[] = {
 	{"task", luaopen_task, "Winsh 'task' library v2.0"},
 	{"shell", luaopen_shell, "Winsh 'shell' library v1.0"},
 	{"registry", luaopen_registry, "Winsh 'registry' library v1.0"},
-	{"com", luaopen_com, "Winsh 'com' serial communications library v1.0"},
+	{"ComLink", luaopen_ComLink, "Winsh 'ComLink' serial communications library v1.0"},
 	{"bitfield", luaopen_bitfield, "Bitfield library v1.0"},
 	{NULL, NULL, NULL}
 };

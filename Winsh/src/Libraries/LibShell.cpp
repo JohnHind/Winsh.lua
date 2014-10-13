@@ -6,7 +6,11 @@
 #include "..\resource.h"
 #include "LibTime.h"
 #include "WtsApi32.h"
+//NB: This file and the corresponding cfgmgr32.lib are from WDK 7.1.0
+//http://www.microsoft.com/en-us/download/confirmation.aspx?id=11800
+//Find them in the DDK install and copy to Dependencies directories.
 #include "Cfgmgr32.h"
+//
 #include "..\CNameDlg.h"
 #include "..\JHCPathString.h"
 #include <dbt.h>
