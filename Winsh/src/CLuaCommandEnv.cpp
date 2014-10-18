@@ -127,10 +127,12 @@ static int luaX_DebugPrint(lua_State* L)
 	return 0;
 }
 
-// Expand a help string substituting some configuration variables.
+// Expand a help string substituting some configuration variables and print.
+// Optional second parameter limits the maximum length of the string.
 static int luaX_WriteHelp(lua_State* L)
 {
 	WINSH_LUA(1);
+	int lim = luaL_optinteger(L, 2, 0);
 	CString appfile(H->GetExePath());
     appfile += H->GetExeName() + CString(".EXE");
 	CString s(TEXT("-- "));
@@ -157,6 +159,7 @@ static int luaX_WriteHelp(lua_State* L)
 	s.Replace(CString("{productversion}"), getversioninfo(appfile, CString("ProductVersion")));
 	s.Replace(CString("{specialbuild}"), getversioninfo(appfile, CString("SpecialBuild")));
 	s.Replace(TEXT("\n"), TEXT("\r\n-- "));
+	if ((lim > 0) && (s.GetLength() > lim)) s = s.Left(lim);
 	luaX_pushstring(L, s);
 	return luaX_DebugPrint(L);
 }

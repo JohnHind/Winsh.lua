@@ -59,9 +59,9 @@ protected:
 	CString InitName;					//Name of the initialisation script executed on Lua reset (init)
 	CString ResType;					//Type of Script Resources (LUA)
 	CString LuaExt;						//Extension for script files (.lua)
-	CString ExePath;					//Full path to this exe file.
+	CPathString ExePath;				//Full path to this exe file.
 	CString ExeName;					//Name of this exe file (winsh).
-	CString LibPath;					//Full path to library files (or empty).
+	CPathString LibPath;				//Full path to library files (or empty).
 	CString LastError;					//The last error message that was reported (or suppressed).
 
 public:
@@ -109,6 +109,9 @@ public:
 		UPDATE_ELEMENT(ID_VIEW_STATUS_BAR, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_SCRIPT_EXIM, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_SCRIPT_SAVE, UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_SCRIPT_SSF, UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_SCRIPT_SSS, UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_APP_FOLDER, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_EDIT_CUT, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_EDIT_COPY, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_EDIT_PASTE, UPDUI_MENUPOPUP)
@@ -142,6 +145,7 @@ public:
 		COMMAND_ID_HANDLER(ID_SCRIPT_SAVE, OnScriptSave)
 		COMMAND_ID_HANDLER(ID_SCRIPT_SSS, OnScriptSSS)
 		COMMAND_ID_HANDLER(ID_SCRIPT_SSF, OnScriptSSF)
+		COMMAND_ID_HANDLER(ID_APP_FOLDER, OnShowAppFolder)
 		COMMAND_ID_HANDLER(ID_CLOSE_REPORT, OnCloseReport)
 		COMMAND_ID_HANDLER(ID_NOTIFY_EXIT, OnNotifyExit)
 		COMMAND_ID_HANDLER(ID_HELP_LIST, OnHelpList)
@@ -235,34 +239,28 @@ public:
 
 
 		// Get the full filepath of this exe file:
-		CString c1("");
-		GetModuleFileName(NULL, c1.GetBuffer(MAX_PATH), MAX_PATH);
-		c1.ReleaseBuffer();
+		CPathString c1("");
+		GetModuleFileName(NULL, c1.GetBuffer(MAX_PATH), MAX_PATH); c1.ReleaseBuffer();
 		c1.TrimLeft(_T(" \"")); c1.TrimRight(_T(" \""));
+		c1.MakeUpper();
 
 		// This block is a trick: If the exe is marked as a console app but started from Windows
 		// it will be started with a console and the title of that console will be the module
 		// filepath - we do not want this console unless we do writes in conio mode in which case
 		// we will recreate it. If the exe is started from a pre-existing console the title will
 		// be different and we do want to retain it.
-		CString ct("");
-		CString cp = CString(c1);
-		cp.MakeUpper();
-		DWORD cc = GetConsoleTitle(ct.GetBuffer(MAX_PATH), MAX_PATH);
-		ct.ReleaseBuffer();
+		CString ct(""); DWORD cc = GetConsoleTitle(ct.GetBuffer(MAX_PATH), MAX_PATH); ct.ReleaseBuffer();
 		if (cc > 0)
 		{
 			ct.MakeUpper(); ct.TrimLeft(_T(" \"")); ct.TrimRight(_T(" \""));
-			if (cp == ct) FreeConsole();
+			if (c1 == ct) FreeConsole();
 		}
 
 		// Derive the path to the exe file and the basic name (without the .exe extension):
-		ExePath = c1;
-		PathRemoveFileSpec(ExePath.LockBuffer()); ExePath.ReleaseBuffer();
-		PathAddBackslash(ExePath.LockBuffer()); ExePath.ReleaseBuffer();
-		ExePath.MakeUpper();
-		ExeName = CString(PathFindFileName(c1.LockBuffer())); c1.ReleaseBuffer();
+		ExeName = c1.PathFindFileName();
 		PathRemoveExtension(ExeName.LockBuffer()); ExeName.ReleaseBuffer();
+		c1.PathRemoveFileSpec(); c1.PathAddBackslash();
+		ExePath = c1;
 
 		// If Windows 7, set the UserModelID so task bar buttons are separate for different applications:
 		FARPROC proc = GetProcAddress(GetModuleHandle(TEXT("Shell32.dll")), "SetCurrentProcessExplicitAppUserModelID");
@@ -386,6 +384,27 @@ public:
 			UIEnable(ID_EDIT_DELETE, FALSE);
 			UIEnable(ID_EVALUATE, FALSE);
 		}
+		CPathString n(LibPath); // App folder was specified on command line
+		if (!n.PathIsDirectory()) n = ExePath + ExeName + LuaExt; // Otherwise it must be side-by-side
+		if (n.PathFileExists()) {
+			if (n.PathIsDirectory()) {
+				UIEnable(ID_SCRIPT_SSF, TRUE);
+				UIEnable(ID_SCRIPT_SSS, FALSE);
+				UIEnable(ID_APP_FOLDER, TRUE);
+			}
+			else
+			{
+				UIEnable(ID_SCRIPT_SSF, FALSE);
+				UIEnable(ID_SCRIPT_SSS, TRUE);
+				UIEnable(ID_APP_FOLDER, FALSE);
+			}
+		}
+		else
+		{
+			UIEnable(ID_SCRIPT_SSF, TRUE);
+			UIEnable(ID_SCRIPT_SSS, TRUE);
+			UIEnable(ID_APP_FOLDER, FALSE);
+		}
 		return 0;
 	}
 
@@ -465,7 +484,7 @@ public:
 	}
 
 	LRESULT OnScriptSSS(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
-	{
+	{   // Create a side-by-side script file if it does not already exist and open it.
 		CPathString n(ExePath+ExeName+LuaExt);
 		if (n.PathIsDirectory()) return 0;
 		if (n.PathFileExists() && (!n.PathIsDirectory())) {
@@ -479,10 +498,16 @@ public:
 	}
 
 	LRESULT OnScriptSSF(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
-	{
-		CPathString n(ExePath+ExeName+LuaExt);
+	{   // Create an app folder and a start script file in it (if either does not already exist)
+		// Open this start script file.
+		CPathString n(LibPath); // App folder already specified
+		if (!n.PathIsDirectory()) n = ExePath+ExeName+LuaExt; // Otherwise allow it to be created side-by-side
 		if ((n.PathFileExists()) && (!n.PathIsDirectory())) return 0;
-		if (!n.PathFileExists()) ::CreateDirectory(n, NULL);
+		if (!n.PathFileExists()) {
+			::CreateDirectory(n, NULL);
+			LibPath = n;
+			SetLibraryPaths();
+		}
 		n.PathAppend(InitName+LuaExt);
 		if (n.PathFileExists()) {
 			LoadFile(n);
@@ -491,6 +516,12 @@ public:
 	        m_FN = CString(n);
 	        CheckEditStatus();
 		}
+		return 0;
+	}
+
+	LRESULT OnShowAppFolder(WORD, WORD, HWND, BOOL&)
+	{
+		ShellExecute(NULL, TEXT("open"), LibPath, NULL, NULL, SW_SHOWNORMAL);
 		return 0;
 	}
 
@@ -578,8 +609,8 @@ public:
 		RemovePrompt();
 	    int ss = m_wndTopEdit.GetSelEndLine();
 	    WriteMessage(TEXT("--[["),TRUE,TRUE);
-		WriteMessage(TEXT("--    Resources available in this Winsh.lua Build"),TRUE,TRUE);
-		WriteMessage(TEXT("--    ==========================================="),TRUE,TRUE);
+		WriteMessage(TEXT("--    Available Resources"),TRUE,TRUE);
+		WriteMessage(TEXT("--    ==================="),TRUE,TRUE);
 		CString nm("oninventory");
 		if (m_cmd->CheckCmdField(nm, LUA_TFUNCTION))
 			ExecLuaString(nm + CString("()"), TRUE, NULL);
@@ -686,6 +717,7 @@ public:
 	virtual CString& GetExeName()  {return ExeName;}
 	virtual CString& GetLastError(){return LastError;}
 	virtual CString& GetAppName()  {return AppName;}
+	virtual CString& GetAppPath()  {return LibPath;}
 	virtual HWND GetHWND()         {return m_hWnd;}
 	virtual void SetAppName(LPCTSTR s);
 	virtual BOOL SetAppIcon(LPCTSTR icon);

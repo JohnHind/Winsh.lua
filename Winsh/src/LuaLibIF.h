@@ -45,6 +45,7 @@ public:
 	virtual CString& GetLuaExt() = 0;
 	virtual CString& GetExePath() = 0;
 	virtual CString& GetExeName() = 0;
+	virtual CString& GetAppPath() = 0;
 	virtual CString& GetLastError() = 0;
 	virtual CString& GetAppName() = 0;
 	virtual HWND GetHWND() = 0;

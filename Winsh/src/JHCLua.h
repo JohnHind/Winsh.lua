@@ -105,16 +105,16 @@ typedef struct luaX_Reg {
 // lua per the standard command line interpreter.
 static const luaX_Reg luaX_defloads[] = {
 //  {"name", luaopen_name, "description"},
-	{"_G", luaopen_base, "Standard Lua basic library"},
-	{"package", luaopen_package, "Standard Lua 'package' library"},
-	{"coroutine", luaopen_coroutine, "Standard Lua 'coroutine' library"},
-	{"table", luaopen_table, "Standard Lua 'table' library"},
-	{"io", luaopen_io, "Standard Lua 'io' library"},
-	{"os", luaopen_os, "Standard Lua 'os' library"},
-	{"string", luaopen_string, "Standard Lua 'string' library"},
-	{"bit32", luaopen_bit32, "Standard Lua 'bit32' library"},
-	{"math", luaopen_math, "Standard Lua 'math' library"},
-	{"debug", luaopen_debug, "Standard Lua 'debug' library"},
+//	{"_G", luaopen_base, "Standard Lua basic library"},
+//	{"package", luaopen_package, "Standard Lua 'package' library"},
+//	{"coroutine", luaopen_coroutine, "Standard Lua 'coroutine' library"},
+//	{"table", luaopen_table, "Standard Lua 'table' library"},
+//	{"io", luaopen_io, "Standard Lua 'io' library"},
+//	{"os", luaopen_os, "Standard Lua 'os' library"},
+//	{"string", luaopen_string, "Standard Lua 'string' library"},
+//	{"bit32", luaopen_bit32, "Standard Lua 'bit32' library"},
+//	{"math", luaopen_math, "Standard Lua 'math' library"},
+//	{"debug", luaopen_debug, "Standard Lua 'debug' library"},
 	{NULL, NULL, NULL}
 };
 static const luaX_Reg luaX_defpreloads[] = {

@@ -63,55 +63,63 @@ end
 oninventory = function()
   writehelp("{configuration}")
   writehelp("{subsystem}")
-  writehelp("====LIBRARIES")
+  writehelp("====LIBRARIES IN EXE FILE")
   writehelp("(Libraries marked 'available' must be loaded using Lua 'require')")
   for k, v in Table(getinventory("libraries")) do
       if package.loaded[k] then
-	    writehelp(pad(k,12) .. "[loaded]    " .. v)
+	    writehelp(pad(k,12) .. "[loaded]    " .. v, 80)
 	  else
 	    if _L[k] then
-	      writehelp(pad(k,12) .. "[cmd-only]  " .. v)
+	      writehelp(pad(k,12) .. "[cmd-only]  " .. v, 80)
 	    else
-	      writehelp(pad(k,12) .. "[available] " .. v)
+	      writehelp(pad(k,12) .. "[available] " .. v, 80)
 	    end
 	  end
   end
-  writehelp("====RESOURCE SCRIPTS")
+  writehelp("====SCRIPTS IN RESOURCES")
   for k, v in Table(getinventory("scripts")) do
-      writehelp(pad(k,12) .. "|" .. v)
+      writehelp(pad(k,12) .. "|" .. v, 80)
   end
-  writehelp("====SCRIPT FILES")
-  for k, v in Table(getinventory("files")) do
-      writehelp(pad(k,12) .. "|" .. v)
+  writehelp("====SCRIPTS & LIBRARIES IN FILES")
+  local f = Table(getinventory("files"))
+  local d = List{}
+  local i = 1
+  for k in f do
+	  d[i] = k
+	  i = i + 1
   end
-  writehelp("====ICONS")
+  d:sort()
+  for i = 1, #d do
+      writehelp(pad(d[i],12) .. "|" .. f[d[i]], 80)
+  end
+  writehelp("====ICONS IN RESOURCES")
   for k, v in Table(getinventory("icons")) do
-      writehelp(pad(k,12) .. "[" .. v .. "]")
+      writehelp(pad(k,12) .. "[" .. v .. "]", 80)
   end
 end
 
 oncommandline = function()
   writehelp([=[
-{exename} [options] [scriptname [args]]
+{exename} [options] [scriptname [arguments]]
 OPTIONS:
--e'lua':  Compiles and executes 'lua' as a source code string.
--l'mod':  Compiles and executes 'mod = require(mod)'.
--i     :  Enters interactive mode after running the script.
--v     :  Prints version information.
---     :  Ignore any further options.
-SCRIPT:
+-e'lua': Compile and execute 'lua' as a source code string.
+-l'mod': Compile and execute 'mod = require(mod)'.
+-a     : Treat 'scriptname' as a file in an app folder.
+-i     : Enter interactive mode after running the script.
+-v     : Display version information.
+--     : Ignore any further options.
+SCRIPTNAME:
 'scriptname' may be the name of a LUA resource in this exe file,
-the name of a file or folder in the same folder as this exe
-file, or the full path to a file or folder. If a folder, it must
-contain a file '{startname}{luaext}'. Note that any '-l' text is
-executed first, then 'scriptname', then any '-e' text.
+the name of a script file or app folder in the same folder as
+this exe file, or the full path to a script file or app folder.
+If a folder, it must contain a file '{startname}{luaext}' and
+may also contain library files. Any '-l' text is executed first,
+then 'scriptname' and finally any '-e' text.
 ARGUMENTS:
-Any further arguments after the scriptname are passed through to
-the script using the Lua varargs mechanism. A parameter that is
-valid as a number string becomes a number, 'true' or 'false'
-becomes a boolean, 'nil' becomes nil and anything else becomes
-a string. Interpretation as a string may be forced by enclosing
-in quote marks.]=])
+Any further arguments after 'scriptname' are passed through to
+this script as Lua varargs. Number strings, 'true', 'false' and
+'nil' are interpreted to typed values. Other parameters,
+including all quoted parameters, are passed as Lua strings.]=])
 end
 
 onreportclear = function()

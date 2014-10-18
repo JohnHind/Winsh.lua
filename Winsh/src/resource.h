@@ -43,6 +43,7 @@
 #define ID_SCRIPT_SAVE                  32805
 #define ID_SCRIPT_SSS                   32812
 #define ID_SCRIPT_SSF                   32813
+#define ID_APP_FOLDER					32814
 #define ID_SCRIPT_FINDERROR             32815
 #define ID_SCRIPT_O                     32816
 

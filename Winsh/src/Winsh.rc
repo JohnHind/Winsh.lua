@@ -53,11 +53,12 @@ IDR_MAINFRAME MENU
 BEGIN
     POPUP "&Script"
     BEGIN
-        MENUITEM "E&valuate Selected Expression\tF2", 32803
+		MENUITEM "E&valuate Selected Expression\tF2", ID_EVALUATE
         MENUITEM "&Reset Lua Environment",      ID_SCRIPT_RESET
         MENUITEM "&Save Script\tCTRL+S",        ID_SCRIPT_SAVE
-        MENUITEM "Side-by-Side Scri&pt",        32812
-        MENUITEM "Side-by-Side Fol&der",        ID_SCRIPT_SSF
+		MENUITEM "Side-by-Side Scri&pt",		ID_SCRIPT_SSS
+        MENUITEM "Side-by-Side App Fol&der",    ID_SCRIPT_SSF
+		MENUITEM "Open &App Folder",			ID_APP_FOLDER
         MENUITEM SEPARATOR
         MENUITEM "&Exit Winsh.lua",             ID_APP_EXIT
     END
@@ -120,8 +121,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,0,0
- PRODUCTVERSION 2,2,0,0
+ FILEVERSION 2,2,2,0
+ PRODUCTVERSION 2,2,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -138,13 +139,13 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "JH"
             VALUE "FileDescription", "Winsh.lua Scripting"
-            VALUE "FileVersion", "2.2.0.0"
+            VALUE "FileVersion", "2.2.2.0"
             VALUE "InternalName", "Winsh.lua"
             VALUE "LegalCopyright", "Copyright © 2010-2014 John Hind"
             VALUE "LegalTrademarks", "Lua Copyright © 1994-2012 Lua.org, PUC-Rio."
             VALUE "OriginalFilename", "Winsh.exe"
             VALUE "ProductName", "Winsh.lua Scripting System for Windows"
-            VALUE "ProductVersion", "2.2.0.0"
+            VALUE "ProductVersion", "2.2.2.0"
         END
     END
     BLOCK "VarFileInfo"

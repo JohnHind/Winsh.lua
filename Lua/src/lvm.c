@@ -26,7 +26,9 @@
 #include "ltm.h"
 #include "lvm.h"
 
-
+#if defined(JH_LUA_ITER)
+LUAI_FUNC int luaB_pairs (lua_State *L);
+#endif
 
 /* limit for table tag-method chains (to avoid loops) */
 #define MAXTAGLOOP	100
@@ -801,8 +803,7 @@ void luaV_execute (lua_State *L) {
 			else
 			{
 				L->top = cb;
-				lua_getglobal(L, "pairs");
-				if (!ttisfunction(cb)) luaG_typeerror(L, ra, "iterate");
+				lua_pushcfunction(L, luaB_pairs);
 			}
 			setobjs2s(L, cb+1, ra);
 			L->top = cb + 2;

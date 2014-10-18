@@ -18,6 +18,7 @@ bool m_rightMenu = false;           //Is a menu enabled for notify icon right cl
 int GcNextKeyID = 1;				//The next HotKey ID available for allocation
 int GcCmdCount = 0;					//The number of times winsh.commandline has been used from Lua
 int GcRepAct = 0;					//Message code for first of two timer messages for setreport.
+int gc_envloaded = FALSE;           //Have the extra environment variables been loaded yet?
 
 #ifdef LUAGCLIB_DLL
 HMODULE hM;
@@ -209,67 +210,6 @@ BOOL gc_FindScriptResource(lua_State* L, CString& n)
 		return FALSE;
 	else
 		return TRUE;
-}
-
-static int gc_LoadEnvironment(lua_State* L)
-{
-	WINSH_LUA(1)
-	CString x = CString();
-
-	DWORD n = 1024;
-	if (GetComputerNameEx(ComputerNamePhysicalDnsHostname, x.GetBuffer(1024), &n))
-	{
-		x.ReleaseBuffer();
-	}
-	else
-	{
-		x.ReleaseBuffer();
-		x = CString("");
-	}
-	SetEnvironmentVariable(TEXT("G_COMPUTERNAME"), x);
-
-	n = 1024;
-	if (GetUserName(x.GetBuffer(1024), &n))
-	{
-		x.ReleaseBuffer();
-	}
-	else
-	{
-		x.ReleaseBuffer();
-		x = CString("");
-	}
-	SetEnvironmentVariable(TEXT("G_USERNAME"), x);
-
-	CString x1 = CString(H->GetExePath());
-	x = CString(x1);
-	int p = x.Find(':');
-	if (p != 1)
-	{
-		p = x.Find('\\', 2);
-		x = x.Left(p);
-	}
-	else
-	{
-		x = x.Left(p + 1);
-		x.MakeUpper();
-	}
-	SetEnvironmentVariable(TEXT("G_EXEDEV"), x);
-
-	x = CString(x1);
-	int q = x.ReverseFind('\\');
-	if (q > (p + 1))
-		x = x.Mid(p+1, q - p);
-	else
-		x = CString("\\");
-	SetEnvironmentVariable(TEXT("G_EXEPATH"), x);
-
-	x = H->GetExeName();
-	SetEnvironmentVariable(TEXT("G_EXENAME"), x);
-
-	x = H->GetLuaExt();
-	SetEnvironmentVariable(TEXT("G_LUAEXT"), x);
-
-	return 0;
 }
 
 LRESULT gc_msgprocpl(UINT id, CMsgTrap* t, CWindow* w, UINT& msg, WPARAM& wp, LPARAM& lp, BOOL& h)
@@ -636,11 +576,46 @@ static int gc_mutex(lua_State* L)
 static int gc_environment(lua_State* L)
 {
 	WINSH_LUA(2)
+	CPathString x; DWORD n;
+
+	if (!gc_envloaded)
+	{
+		n = 1024;
+		if (!GetComputerNameEx(ComputerNamePhysicalDnsHostname, x.GetBuffer(1024), &n))	{ x.ReleaseBuffer(); x = CString(""); }
+		x.ReleaseBuffer();
+		SetEnvironmentVariable(TEXT("G_COMPUTERNAME"), x);
+
+		n = 1024;
+		if (!GetUserName(x.GetBuffer(1024), &n)) { x.ReleaseBuffer(); x = CString(""); }
+		x.ReleaseBuffer();
+		SetEnvironmentVariable(TEXT("G_USERNAME"), x);
+
+		x = CPathString(H->GetExePath());
+		x.PathStripToRoot(); x.TrimRight('\\');
+		n = x.GetLength();
+		SetEnvironmentVariable(TEXT("G_EXEDEV"), x);
+
+		x = CPathString(H->GetExePath());
+		x = x.Mid(n); x.PathAddBackslash();
+		SetEnvironmentVariable(TEXT("G_EXEPATH"), x);
+
+		x = H->GetExeName();
+		SetEnvironmentVariable(TEXT("G_EXENAME"), x);
+
+		x = H->GetLuaExt();
+		SetEnvironmentVariable(TEXT("G_LUAEXT"), x);
+
+		gc_envloaded = TRUE;
+	}
+	x = CPathString(H->GetAppPath());
+	if (x.PathIsDirectory()) x.PathAddBackslash(); else x = CString("");
+	SetEnvironmentVariable(TEXT("G_APPPATH"), x);
+
 	if (lua_isstring(L, 1))
 	{
-		CPathString s(lua_tostring(L, 1));
-		s.ExpandEnvironment();
-		luaX_pushstring(L, s);
+		x = CPathString(lua_tostring(L, 1));
+		x.ExpandEnvironment();
+		luaX_pushstring(L, x);
 	}
 	else
 	{
@@ -973,6 +948,7 @@ LUAGCLIB_API int LUAGCLIB_NGEN(luaopen_)(lua_State* L)
 	for (int i = 1; (i < GcNextKeyID); i++) ::UnregisterHotKey(H->GetHWND(), i);
 	GcNextKeyID = 1;
 	GcRepAct = 0;
+	gc_envloaded = FALSE;
 
 	// Create timer messages for delayed report window actions:
 	GcRepAct = H->AllocLuaMessages(2);
@@ -987,8 +963,6 @@ LUAGCLIB_API int LUAGCLIB_NGEN(luaopen_)(lua_State* L)
 	{
 		lua_createtable(L, 0, sizeof(fl)/sizeof(fl[0]) - 1);
 		luaL_setfuncs(L, fl, 0);
-		// Load the "special" environment variables:
-		gc_LoadEnvironment(L);
 		// Load and execute the Lua part of the library:
 		H->LoadScriptResource(CString("LibGC"));
 		lua_pushvalue(L, -2);

@@ -3,11 +3,11 @@ Generating the Published (read only) version of the documentation TiddlyWiki.
 
 The internal SaveAs function no longer works, so must process the file manually:
 
-1. Copy the source file to a new file.
-2. Find and edit the "Imprint" tiddler. Add the tag "$$!published!" to its tags.
-3. Find and delete all tiddlers tagged "excludePublished".
-4. Save and close the file.
-5. Open the file in a text editor.
+1. Search the "imprint" tag and edit or create a new imprint tiddler for the release.
+2. Save and close the file. Copy the source file to a new file and open this.
+3. Add the tag "$$!published!" to the tags of the latest imprint tiddler.
+4. Find and delete all tiddlers tagged "excludePublished".
+5. Save and close the file. Open the file in a text editor.
 6. In the "versionArea" script section near the top of the file, edit the title "TiddlyWiki" to "TW".
 7. Save and close the file - it should now reopen in a browser as a read-only published version.
 

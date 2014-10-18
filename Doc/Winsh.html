@@ -1235,14 +1235,15 @@ The Command object has the following fields:
 :If present this must be a boolean value. If {{{true}}} causes the command to be the default command in any UI which supports multiple Commands.
 </pre>
 </div>
-<div title="Command-line Execution" creator="John Hind" modifier="John Hind" created="201005292128" modified="201410030953" changecount="10">
-<pre>Winsh.lua supports the same [[command-line]] options as {{{Lua.exe}}} allowing scripts to be stored in separate files with the {{{.lua}}} extension (by default). This is extended with the concept of //script folders//. If the path on the command-line specifies a folder rather than a file, Winsh loads a file {{{start.lua}}} (by default) from that folder. In this case, the folder may also contain library files ({{{.lua}}} and {{{.dll}}}) which may be loaded using Lua {{{require}}} statements. The defaults for the script extension and folder start script may be changed by editing string resources in the exe file (see [[String Table Resources]]).
+<div title="Command-line Execution" creator="John Hind" modifier="John Hind" created="201005292128" modified="201410161827" changecount="12">
+<pre>Winsh.lua supports the same [[command-line]] options as {{{Lua.exe}}} allowing scripts to be stored in separate files with the {{{.lua}}} extension (by default). This is extended with the concept of //application folders//. If the path on the command-line specifies a folder rather than a file, Winsh loads a file {{{start.lua}}} (by default) from that folder. In this case, the folder may also contain library files ({{{.lua}}} and {{{.dll}}}) which may be loaded using Lua {{{require}}} statements. The defaults for the script extension and folder start script may be changed by editing string resources in the exe file (see [[String Table Resources]]).
 
 For example, assuming the following folder layout (relative to the current folder):
 {{{
 \winsh.exe
 \test.lua
 \app\start.lua
+\app\script1.lua
 \app\lib\library1.lua
 \app\library2.dll
 \app\WinshLua.dll
@@ -1260,7 +1261,14 @@ Would load and run the script {{{app\start.lua}}}. In this case, the script coul
 lib1 = require(&quot;lib.library1&quot;)
 lib2 = require(&quot;library2&quot;)
 }}}
-These examples assume that {{{winsh.exe}}} is copied and renamed from one of the [[Winsh Executables]]. To load a DLL library, the executable must be copied from a {{{D}}} variant and {{{WinshLua.dll}}} must also be present in the app folder.</pre>
+These examples assume that {{{winsh.exe}}} is copied and renamed from one of the [[Winsh Executables]]. To load a DLL library, the executable must be copied from a {{{D}}} variant and {{{WinshLua.dll}}} must also be present in the app folder.
+
+It is also possible to load a file other than {{{start.lua}}} in a specified folder and also have that folder treated as an application folder. The {{{-a}}} switch instructs winsh to load the specified file and treat the folder containing it as an app folder. Using the above folder structure, the command:
+{{{
+winsh -a app\script1.lua
+}}}
+Would load and run the script {{{app\script1.lua}}} and the require statement shown for the previous example would also work. Without the {{{-a}}} switch, the script would run, but the require statements would not work.
+</pre>
 </div>
 <div title="Console Applications" creator="John Hind" modifier="John Hind" created="201402171127" modified="201402171234" changecount="6">
 <pre>Console applications do not have any graphical UI elements and are designed to be run from a '''Command Window'''. Usually, such applications will be built using one of the [[Winsh Executables]] with the Console Subsystem Flag, but what actually characterises such applications is the absence of any graphical UI element usage.
@@ -1272,6 +1280,57 @@ Options for user interaction are limited to:
 # Writing to ''stdout'' or ''stderr'' ([[winsh.outputmode]]).
 # Returning an ''errorlevel'' value on completion.
 </pre>
+</div>
+<div title="Console Customisation" creator="John Hind" modifier="John Hind" created="201410170947" modified="201410180958" changecount="20">
+<pre>The script resource ''~INIT-CMD'' defines the functionality of the Interactive Console. This resource can be modified using the techniques described under [[LUA Script Resources]].
+
+The following functions should be implemented in the ''~INIT-CMD'' resource and are called when specific UI events occur:
+!!onhelp(); onabout(); oninventory(); oncommandline()
+These functions are called when the corresponding Help menu item is clicked. They should normally be implemented using the {{{writehelp}}} function (see below). Prior to calling this function, the caret is moved to the end and a Lua block comment open bracket is written. After calling this function, a Lua block comment closing bracket is written and then a new prompt line before the caret is positioned at the opening bracket.
+
+Note that the '''Application Notes''' menu item is customised by setting a global string variable '''_APPNOTES''' in the main script environment. It cannot be customised in ''~INIT-CMD''.
+!!onreportclear()
+This function is called when the upper report pane is cleared.
+!!onevaluate(str [, st])
+This function is called when the user presses '''enter''' in the upper pane, double-clicks in either pane or takes the '''evaluate selected''' context menu item on a selection in either window. Parameter ''str'' is the selected text or the current line if there is no selection. Parameter ''st'' is only passed if there is no selection and is a number, the index of the first character after the caret in ''str''.
+
+The following functions are provided in the console environment for use in implementing the above functions:
+!!dprint(string)
+Writes ''string'' directly to the upper pane ignoring any script output settings.
+!!writehelp(text [, lim])
+Writes ''text'' as a pseudo Lua comment in the report pane. ''text'' should be literal and may be multi-line and contain substitution tokens as described below. The optional ''lim'' parameter should be a number, the maximum number of characters to write. This is useful for single-line strings that should not exceed a reasonable console width.
+
+The available substitution tokens are as follows:
+|!Token|!Description|h
+|{exename}|The name of this exe file (no path or extension).|
+|{startname}|The name of the default start script in an App Folder (no path or extension).|
+|{luaext}|The default file extension for Lua files (with leading period).|
+|{subsystem}|Describes if exe is WINDOWS or CONSOLE subsystem and STANDALONE or using a Lua DLL.|
+|{configuration}|Describes the set of libraries compiled into the exe.|
+|{luaauthors}|Credits for Lua programming language.|
+|{luaversion}|The version number of Lua used in the exe build.|
+|{luacopyright}|The Lua authors copyright notice.|
+Plus the following tokens which substitute values from the ''versioninfo'' resource of the exe file: {comments}; {companyname}; {filedescription};{fileversion}; {internalname}; {legalcopyright}; {legaltrademarks}; {originalfilename}; {privatebuild}; {productname}; {productversion} and {specialbuild}.
+!!tab = getinventory(key)
+Returns an object of [[Table Class]] itemising the resources of a category specified by the string ''key''. The table keys are the names of the resources and the values are strings describing or summarising each resource.
+
+The available keys are as follows:
+|!Key|Inventory type|h
+|libraries|Libraries which are compiled into the exe file.|
+|scripts|Lua scripts and libraries stored as resources in the exe file.|
+|icons|Icon resources in the exe file.|
+|files|Lua and DLL files in the App Folder (and sub-folders) or the single Lua script file executed on start-up.|
+!!console(key [, para])
+Performs a console action specified by the string ''key''. Some actions require a parameter as noted below:
+|!Key|!Para|!Notes|h
+|open|string|Open the named file or resource in the lower pane.|
+|prep| |Prepare the upper pane to execute a Lua string.|
+|prompt| |Ensure there is a blank execute prompt in the upper pane.|
+|script| |Return the script in the lower pane if it needs executing.|
+|url|string|Executes an open verb on the url or path specified.|
+|clear| |Clears the upper console pane.|
+|command| |Positions the caret at the first prompt above the current line.|
+|line|number|Positions the caret at the start of the specified line in the lower pane.|</pre>
 </div>
 <div title="Creating Classes" creator="John Hind" modifier="John Hind" created="201402111951" modified="201402111955" changecount="5">
 <pre>Classes in Winsh are function closures which return objects when called. Three different object models are supported:
@@ -1487,8 +1546,8 @@ Called with two number parameters, the object represents a coordinate pair (poin
 [[frame:place]] - Place a frame within another.
 </pre>
 </div>
-<div title="FtdiLink Library" creator="John Hind" modifier="John Hind" created="201407191329" modified="201410112242" changecount="18">
-<pre>The &quot;&quot;&quot;FtdiLink&quot;&quot;&quot; library provides a ''Winsh Link'' interface with a number of USB interface chips from Future Technology Devices International (FTDI) via their '&quot;&quot;&quot;D2XX&quot;&quot;&quot; Direct' device driver which must be installed on the computer to enable operation.
+<div title="FtdiLink Library" creator="John Hind" modifier="John Hind" created="201407191329" modified="201410181035" changecount="22">
+<pre>The &quot;&quot;&quot;FtdiLink&quot;&quot;&quot; library provides a ''Winsh Link'' interface with a number of USB interface chips from Future Technology Devices International (FTDI) via their ''&quot;&quot;&quot;D2XX&quot;&quot;&quot; Direct'' device driver which must be installed on the computer to enable operation.
 
 http://www.ftdichip.com/Drivers/D2XX.htm
 
@@ -1496,7 +1555,7 @@ As with all ''Winsh Link'' libraries, the Port Class provided by this library is
 
 The library is a superset of the [[ComLink Library]] which can also be used with FTDI devices via their VCP (virtual com port) driver. The &quot;&quot;&quot;FtdiLink&quot;&quot;&quot; library provides more specific port (device) selection features and access to enhanced device features such as GPIO and other link protocols.
 
-This library is dynamically loaded and the file {{{FtdiLink.dll}}} must be located either in the same folder as the Winsh.lua executable or in a side-by-side folder. The Winsh.lua executable cannot be a stand-alone version, it must be linked against {{{WinshLua.dll}}} which itself must be present either in the same, or in a side-by-side folder.
+This library is dynamically loaded and the file {{{FtdiLink.dll}}} must be located in an app folder. The Winsh.lua executable cannot be a stand-alone version, it must be linked against {{{WinshLua.dll}}} which itself must be present in the same app folder.
 
 A {{{require}}} statement must be used to load the library and obtain a table of library functions:
 {{{
@@ -1505,7 +1564,7 @@ ftdi = require(&quot;FtdiLink&quot;)
 The library table contains an iterator for device ports and a class from which Port objects may be created.
 !!Functions
 [[ftdi.ports]] Iterator returns information about available ports (FTDI device channels).
-{{{ftdi.op}}} (See [[com.op]]) Returns an opaque op code for use in {{{ftdiport:write}}}.
+{{{ftdi.op}}} (See [[com.op]]) Returns an opaque opcode for use in {{{ftdiport:write}}}.
 !!Classes
 [[ftdi.Port Class]] Objects represent an individual FTDI device port.
 </pre>
@@ -1908,21 +1967,23 @@ if (typeof(wikifyPlainText)==&quot;undefined&quot;) window.wikifyPlainText=funct
 if (typeof($)=='undefined') { function $(id) { return document.getElementById(id.replace(/^#/,'')); } }
 //}}}</pre>
 </div>
-<div title="Interactive Console" creator="John Hind" modifier="John Hind" created="201005292219" modified="201406071101" changecount="28">
+<div title="Interactive Console" creator="John Hind" modifier="John Hind" created="201005292219" modified="201410180948" changecount="34">
 <pre>The interactive console shows if one of the [[Winsh Executables]] with the ''Windows Subsystem Flag'' is run without finding a script. It also appears when necessary to show script errors (by default) and to show the output of the {{{print}}} script function if the {{{winsh.outputmode('gui')}}} option has been selected. Finally, there is a [[command-line]] switch which can be used to show it unconditionally.
 
-The interactive console has two panes. The upper green-on-black pane allows entry of single-line script commands and displays script output and error messages. Lines commencing with the {{{&gt;}}} prompt are executed by pressing '''enter''' with the cursor anwhere in the line. The lower black-on-white pane is a simple text editor for multi-line scripts. The script in the lower pane is executed prior to any command from the upper pane, but only if it has changed since last executed or since the scripting environment was reset.
+The interactive console has two panes. The upper green-on-black pane allows entry of single-line script commands and displays script output and error messages. Lines commencing with the {{{&gt;}}} prompt are executed by pressing '''enter''' with the cursor anywhere in the line. The lower black-on-white pane is a simple text editor for multi-line scripts. The script in the lower pane is executed prior to any command from the upper pane, but only if it has changed since last executed or since the scripting environment was reset.
 
-The console uses a special Lua environment which has read-access to the normal environment used by the scripting, but which does not change that environment (unless the scripting environment table is explicitly referenced). This special environment provides a number of additional features to assist with debugging. Most of these features are defined in the '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource and can be added to or customised by editing this resource (see [[LUA Script Resources]]). This section assumes the default '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource shipped in the Winsh.lua executable files has not been changed.
+The console uses a special Lua environment which has read-access to the normal environment used by the scripting, but which does not change that environment (unless the scripting environment table is explicitly referenced). This special environment provides a number of additional features to assist with debugging. Most of these features are defined in the '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' script resource and can be added to or customised by editing it (see [[Console Customisation]]). This section assumes the default '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource shipped in the Winsh.lua executable files has not been changed.
 
-The ''Help'' menu contains commands to show various pieces of information including an inventory of resources available in the executable file or the local filesystem. This information is supplied by functions defined in the '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource, which may be customised as required.
+The ''Help'' menu contains commands to show various pieces of information including an inventory of resources available in the executable file or the local file system. This information is supplied by functions defined in the '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''' resource, which may be customised as required.
 
 An evaluation function ({{{onevaluate}}} in '''&quot;&quot;&quot;INIT-CMD&quot;&quot;&quot;''') is invoked when the enter key is pressed in the upper pane, when a double-click is made in either pane, or when the ''Evaluate Selected'' menu item is invoked on a selection in either pane. The supplied handler provides a number of features:
 # On a line in the upper pane with a command prompt, the line is copied as a new command (unless it is already the last line) and executed as described above. If there is an {{{=}}} character between the command prompt and the command, the Lua code is pre-processed to display the value of the expression, including enumerating the contents of tables.
 # On a line in the upper pane which is an error message, attempts to find the source of the error and highlight it in the upper or lower pane.
 # On a line in the inventory or help text, attempts to open any file name, resource name or URL in the lower pane or in a browser.
 # On a selection, attempts to open the text as a file name, a resource name or a URL and failing that, to execute the text as a Lua expression using the processor described in 1 above. This is useful for displaying the values of variables and drilling down into nested tables.
-There are no file selection dialogs, however files may be explicitly loaded by dragging them from an explorer window onto the interactive console. Modifications to scripts loaded from files can be saved back to the same file. Contents of the editor pane can also be saved by dragging an empty file onto the window. There are menu options to load side-by-side files or folders (creating them if they do not already exist). Finally, files or script resources may be loaded by placing the cursor anywhere in an error message and pressing {{{enter}}}. It is necessary to save changed resource scripts to a file and then replace them in the executable file using a [[Resource Editor]].
+There are no file selection dialogs, however script files may be explicitly loaded by dragging them from an explorer window onto the interactive console. Modifications to scripts loaded from files can be saved back to the same file. Contents of the editor pane can also be saved by dragging an empty file onto the window. There are menu options to load a side-by-side file or the start script in an application folder (creating the folder and file as necessary). Finally, files or script resources may be loaded by placing the cursor anywhere in an error message and pressing {{{enter}}}.
+
+Resource scripts can be modified, but cannot be saved back to the exe file. To accomplish this the edited text must be saved to a file and then a separate [[Resource Editor]] used to replace the resource with the contents of the file.
 </pre>
 </div>
 <div title="Introduction" creator="John Hind" modifier="John Hind" created="201005272040" modified="201403240925" tags="startup" changecount="11">
@@ -2510,7 +2571,7 @@ local list = List{&quot;one&quot;,&quot;two&quot;,&quot;three&quot;}
 for item in list do print(item) end
 }}}</pre>
 </div>
-<div title="Lua" creator="John Hind" modifier="John Hind" created="201005292145" modified="201406071039" changecount="31">
+<div title="Lua" creator="John Hind" modifier="John Hind" created="201005292145" modified="201410180944" changecount="32">
 <pre>Lua is an open-source procedural scripting language with a fairly standard syntax and a number of interesting non-standard features such as multiple return values from functions and the use of a single, highly flexible and efficient associative array type as the sole data structuring mechanism. The language is fully defined in ''Lua Reference Manual 5.2'' available online at http://www.lua.org/manual/ or in print from Amazon.com. For a more discursive treatment ''Programming in Lua, 2nd Edition'' and ''Lua Programming Gems'' are both warmly recommended (both are available in print from Amazon.com and revenue from sales helps to support Lua language development).
 
 The version of Lua implemented in Winsh.lua is Lua 5.2 as described in the above references, but a number of minor additions and modifications have been made. The term ''Winsh Lua'' refers to Lua 5.2 with these changes and with the additional libraries shipped in the [[Winsh Executables]]. The bracketed references below are to sections in ''Lua Reference Manual 5.2''.
@@ -2546,7 +2607,7 @@ local rawset = class.rawset -- also method of Table
 local setmetatable = class.setmetatable
 }}}
 ! Enhanced 'tonumber'
-The {{{tonumber}}} function is replaced by one that behaves the same except that for values other than string or number type, any {{{__tonumber}}} metamethod is honored. This makes {{{tonumber}}} behave in a similar way to {{{tostring}}}.
+The {{{tonumber}}} function is replaced by one that behaves the same except that for values other than string or number type, any {{{__tonumber}}} metamethod is honoured. This makes {{{tonumber}}} behave in a similar way to {{{tostring}}}.
 ! Relocation of Specialised Basic Functions
 The more rarely used and specialised global functions provided by the Basic Functions standard library have been relocated to a new {{{lua}}} table.  The following code documents this and provides compatibility if required:
 {{{
@@ -3846,13 +3907,29 @@ for sk in rk:subkeys() do print(sk) end
 [[key:deletevalue]] - Delete a named value of the current key.
 </pre>
 </div>
-<div title="Release 2.0" creator="John Hind" modifier="John Hind" created="201102271549" modified="201403251041" tags="imprint excludeLists" changecount="26">
+<div title="Release 2.0" creator="John Hind" modifier="John Hind" created="201102271549" modified="201410181112" tags="imprint excludeLists" changecount="27">
 <pre>|Name|Winsh|
 |Author|[[John Hind]]|
 |Version|2.0.1|
 |Copyright|&amp;copy;2014 [[John Hind]]|
 |Release Date|25th March 2014|
 {{H3{Release Notes}}}
+&gt;2.0.1 - Added {{{__whole}}} metafield for [[List Class]]. Used this to fix sub-menu insertion. Added {{{disabled}}} field to [[Menu Class]] (for sub-menus).
+&gt;2.0 - Changed object model and added clipboard support. Updated Lua core to 5.2.2. Changed name from Grunt to Winsh.
+&gt;1.2 - Updated the &quot;&quot;&quot;Self-Iterating&quot;&quot;&quot; Objects Lua patch, changed [[winsh.taskicon]].
+&gt;1.1 - Upgraded Lua core to 5.2.1.
+''&lt;&lt;publish&gt;&gt;''</pre>
+</div>
+<div title="Release 2.2" creator="John Hind" modifier="John Hind" created="201410181108" modified="201410181111" tags="imprint excludeLists" changecount="3">
+<pre>|Name|Winsh.lua|
+|Author|[[John Hind]]|
+|Version|2.2|
+|Copyright|&amp;copy;2014 [[John Hind]]|
+|Release Date|18th October 2014|
+{{H3{Release Notes}}}
+&gt;2.2 Replaced the old Com Library with a new [[ComLink Library]] and added a superset [[FtdiLink Library]] specifically for FTDI devices.
+&gt;2.2 Clarified the concept of App Folders and added a new [[command-line]] switch ''-a'' and a new [[winsh.environment]] token ''%~G_APPPATH%''.
+&gt;2.2 Documented the [[Console Customisation]] interfaces.
 &gt;2.0.1 - Added {{{__whole}}} metafield for [[List Class]]. Used this to fix sub-menu insertion. Added {{{disabled}}} field to [[Menu Class]] (for sub-menus).
 &gt;2.0 - Changed object model and added clipboard support. Updated Lua core to 5.2.2. Changed name from Grunt to Winsh.
 &gt;1.2 - Updated the &quot;&quot;&quot;Self-Iterating&quot;&quot;&quot; Objects Lua patch, changed [[winsh.taskicon]].
@@ -5831,7 +5908,7 @@ txtBackupFolder: backups
 txtUserName: John%20Hind
 </pre>
 </div>
-<div title="TabContents" creator="John Hind" modifier="John Hind" created="201102221506" modified="201410112057" changecount="48">
+<div title="TabContents" creator="John Hind" modifier="John Hind" created="201102221506" modified="201410161900" changecount="49">
 <pre>[[Introduction]]
 [[Lua]]
 +++[Programming&lt;br&gt;]&gt;
@@ -5841,6 +5918,7 @@ txtUserName: John%20Hind
 [[Embedded Execution]]
 [[Procedural Applications]]
 [[Resident Applications]]
+[[Console Applications]]
 ===
 +++[Class Library&lt;br&gt;]&gt;
 [[Class Library]]
@@ -7407,8 +7485,8 @@ Input prototypes are merged left to right (so the same field in a prototype to t
 The classes generated by this function may be called with no parameters or with a single table parameter to generate a new object. This initialisation table must only contain keys which match existing keys in the prototype table and which do not begin with an underscore (which are assumed to be private fields). Typically, this should be used to override field values but not methods, although this is not prevented.
 </pre>
 </div>
-<div title="com.Port Class" creator="John Hind" modifier="John Hind" created="201410112035" changecount="1">
-<pre>!ftdiport = ftdi.Port{ ... }
+<div title="com.Port Class" creator="John Hind" modifier="John Hind" created="201410112035" modified="201410181007" changecount="2">
+<pre>!comport = ftdi.Port{ ... }
 Returns an open Port Object or Boolean {{{false}}} and a string error description. The named parameters must include ''index'' with a value being a number 1..255, an existing port which is not already open.
 
 Other named parameters configure the port selected. They are all optional (if absent the given default value is used) and may include any combination of the following:
@@ -7431,16 +7509,18 @@ Other named parameters configure the port selected. They are all optional (if ab
 [[comport:close]] Closes the port.
 </pre>
 </div>
-<div title="com.op" creator="John Hind" modifier="John Hind" created="201410111937" modified="201410112110" changecount="3">
-<pre>!code = op(opname [, st] [, to])
-Returns a number which is an opaque opcode for use in the [[comport:write]] method. Parameter ''opname'' is a string key. Parameter ''st'' is an optional Boolean representing signal state {{{true}}} asserted (the default) or {{{false}}} not asserted. Parameter ''to'' is a Number of milliseconds timeout {{{0..4095}}}, which defaults to 0.
+<div title="com.op" creator="John Hind" modifier="John Hind" created="201410111937" modified="201410181021" changecount="6">
+<pre>!opcode = lib.op(opname [, st] [, to])
+Returns a number which is an opaque opcode for use in the {{{write}}} method. Parameter ''opname'' is a string key. Parameter ''st'' is an optional Boolean representing signal state {{{true}}} asserted (the default) or {{{false}}} not asserted. Parameter ''to'' is a Number of milliseconds timeout {{{0..4095}}}, which defaults to 0.
+
+See [[comport:write]] for the available string keys and parameters.
 </pre>
 </div>
-<div title="com.ports" creator="John Hind" modifier="John Hind" created="201410111933" modified="201410112355" changecount="3">
+<div title="com.ports" creator="John Hind" modifier="John Hind" created="201410111933" modified="201410181003" changecount="4">
 <pre>!!for num, info in ftdi.ports() do
 Returns iteration values for iterating the available ports. ''num'' is a number between 1 and 255 and ''info'' is a table of characterising information (see below).
 
-Specifically {{{com.ports}}} is a stateless iterator factory. It returns three values, a stateless iterator function, a nil placeholder(invariant state) and the number {{{0}}} (the initial value of the control variable).
+Specifically {{{com.ports}}} is a stateless iterator factory. It returns three values, a stateless iterator function, a nil placeholder (invariant state) and the number {{{0}}} (the initial value of the control variable).
 
 The ''info'' value is a table which is normally empty but may contain the key ''open'' with Boolean value {{{true}}} if the port exists but is unavailable because it is already open to another application.
 
@@ -7487,22 +7567,22 @@ Once this method returns, the received data can be recovered using [[com:getdata
 As [[com:sendcommand]] except that the reception buffer is not cleared and nothing is sent. Used if ''sendcommand'' can only partly parse the response (for example if there is a message header with a message size count in it). A chain starting with [[com:sendcommand]] and followed by one or more [[com:waitforinput]] is used until the complete message has been accumulated in the buffer, which is then recovered using [[com:getdata]].
 </pre>
 </div>
-<div title="command-line" creator="John Hind" modifier="John Hind" created="201005292209" modified="201402211454" changecount="14">
-<pre>Winsh.lua processes the same command line parameters and switches as the standard Lua runtime.
-
-Assuming the Winsh Executable file is named {{{winsh.exe}}}, the general command line structure is:
+<div title="command-line" creator="John Hind" modifier="John Hind" created="201005292209" modified="201410161625" changecount="18">
+<pre>Winsh.lua processes the same command line parameters and switches as the standard Lua runtime. Assuming the Winsh Executable file is named {{{winsh.exe}}}, the general command line structure is:
 {{{
 winsh [options] [script [arguments]]
 }}}
 The following options are supported:
 ;'''-e//text//'''
-:Compiles and executes text as Lua code. Multiple '''–e''' options may be supplied. The text in these options is collected in the order specified, separated by new line characters, and the collected text is compiled and executed as a single chunk after all other specified scripting.
+:Compile and execute //text// as Lua code. Multiple '''–e''' options may be supplied. The text in these options is collected in the order specified, separated by new line characters, and the collected text is compiled and executed as a single chunk after all other specified scripting.
 ;'''-l//library//'''
-:Treats //library// as a library name and executes a Lua require statement with this name as the parameter. Multiple '''–l''' options may be supplied.
+:Treat //library// as a library name and execute a Lua require statement of the form '''//library// = require(&quot;//library//&quot;)'''. Multiple '''–l''' options may be supplied.
+;'''-a'''
+:Treat //script// as a script file name within an application folder. The folder containing the file is the application folder and may contain libraries. The named script file is run rather than any {{{start.lua}}}.
 ;'''-i'''
 :Enter interactive mode after running scripts. For [[Winsh Executables]] with the Console Subsystem flag, input will be accepted from ''stdin''. For executables with the Windows Subsystem flag, the [[Interactive Console]] will be displayed.
 ;'''-v'''
-:Displays version information. This will be sent to ''stdout'' for [[Winsh Executables]] with the Console Subsystem flag. For executables with the Windows Subsystem flag, the [[Interactive Console]] will be displayed and the version information displayed on that.
+:Print version information. This will be sent to ''stdout'' for [[Winsh Executables]] with the Console Subsystem flag. For executables with the Windows Subsystem flag, the [[Interactive Console]] will be displayed and the version information displayed on that.
 ;'''--'''
 :Causes any options specified after this one to be ignored. May be useful for testing.
 The first parameter which does not start with the '''-''' option prefix will be interpreted as a script name. This may be the name of a script resource in the {{{winsh.exe}}} file, the name of a script file in the same folder as the winsh executable, a full path to a script file, the name of a folder in the same folder as the winsh executable file or a full path to a folder. If the specified name is a folder, the file {{{start.lua}}} in that folder will be used and other files in that folder (both {{{.lua}}} files and {{{.dll}}} files) will be available for loading using {{{require}}} statements. Files must have the extension {{{.lua}}} and this will be added if it is not supplied on the command line. You can force loading of a file rather than a resource of the same name by providing the {{{.lua}}} extension explicitly.
@@ -7522,8 +7602,8 @@ print(s1, n1, b1, s2)
 }}}
 </pre>
 </div>
-<div title="comport:close" creator="John Hind" modifier="John Hind" created="201407191419" modified="201410112044" changecount="4">
-<pre>!comport:close()
+<div title="comport:close" creator="John Hind" modifier="John Hind" created="201407191419" modified="201410181028" changecount="5">
+<pre>!port:close()
 Closes the port. This operation is done automatically by the garbage collector, but it may be useful to call it explicitly to free the device resources immediately for reuse.
 </pre>
 </div>
@@ -7532,13 +7612,13 @@ Closes the port. This operation is done automatically by the garbage collector, 
 Returns a table of characterising information about an open port. This is the same table that is returned by the [[com.ports]] iterator for all available ports.
 </pre>
 </div>
-<div title="comport:instancetable" creator="John Hind" modifier="John Hind" created="201407191417" modified="201410112043" changecount="3">
-<pre>!tab = comport:instancetable()
+<div title="comport:instancetable" creator="John Hind" modifier="John Hind" created="201407191417" modified="201410181028" changecount="4">
+<pre>!tab = port:instancetable()
 Returns a table stored in the port object which may be used to store per-instance fields required by higher level protocol drivers based on this port. The table is created the first time this method is called.
 </pre>
 </div>
-<div title="comport:read" creator="John Hind" modifier="John Hind" created="201407191413" modified="201410112254" changecount="33">
-<pre>!result [, count] = comport:read([timeout|function [, bytes [, term]]])
+<div title="comport:read" creator="John Hind" modifier="John Hind" created="201407191413" modified="201410181027" changecount="36">
+<pre>!result [, count] = port:read([timeout|function [, bytes [, term]]])
 Receives data from the port as a fixed length or terminated packet. Blocking, polling loop and asynchronous read models are supported. In the event of an error, the call returns Boolean {{{false}}} and a string error message.
 !!!Blocking Read
 A blocking read consists of a single call which blocks execution until a complete packet has been received or a ''timeout'' (in milliseconds) expires. ''bytes'' is either the length of an expected fixed-length packet or the maximum possible length of a variable length packet. ''term'' is required only for variable length packets and must be between one and four bytes long. This sequence of bytes (which is not included in the ''byte'' count) marks the end of the packet. If a complete packet is received before the timeout, ''result'' is a string containing the packet (less any terminator). Otherwise ''result'' is Boolean {{{false}}} and ''count'' is the number of bytes received.
@@ -7547,7 +7627,7 @@ packet = port:read(1000, 10, &quot;;&quot;)
 if packet then print(packet) else print(&quot;TIMEOUT or ERROR&quot;) end
 }}}
 !!!Polling Loop Read
-This starts with a similar ''initial call'' to the Blocking Read case, except that a zero timeout is passed. A polling loop, controled by another call to the read method with just a timeout value (which may be zero), is entered to await the packet. This is a ''polling call'' which returns the packet string if the packet has been received, or boolean false and a count of characters received so far. Once the polling loop exits a ''peek call'', which has no parameters, can be used to recover the packet string (this is the same string as returned by the final polling call, but this approach avoids the need to save it in a local variable). The advantage of this over a Blocking Read is that the polling loop may do other processing whilst awaiting the packet.
+This starts with a similar ''initial call'' to the Blocking Read case, except that a zero timeout is passed. A polling loop, controlled by another call to the read method with just a timeout value (which may be zero), is entered to await the packet. This is a ''polling call'' which returns the packet string if the packet has been received, or Boolean false and a count of characters received so far. Once the polling loop exits a ''peek call'', which has no parameters, can be used to recover the packet string (this is the same string as returned by the final polling call, but this approach avoids the need to save it in a local variable). The advantage of this over a Blocking Read is that the polling loop may do other processing whilst awaiting the packet.
 {{{
 port:read(0, 10, &quot;;&quot;)
 while port:read(0)
@@ -7563,17 +7643,17 @@ tmr = Time{seconds=1}
 tmr:alarm(port:read(function(port) print(port:read()) end, 10, &quot;;&quot;))
 }}}
 !!!Note
-The system maintains a character buffer which, after an ''initial'' read call (two or three parameters) will be at least ''bytes'' plus four (for possible terminator characters) long. This buffer will be grown as necessary for subsequent ''initial'' reads, but is never shrunk. If it is necessary to recover this memory, [[comport:close]] the device object and create a new one.
+The system maintains a character buffer which, after an ''initial'' read call (two or three parameters) will be at least ''bytes'' plus four (for possible terminator characters) long. This buffer will be grown as necessary for subsequent ''initial'' reads, but is never shrunk. If it is necessary to recover this memory, use the close method (see [[comport:close]]) of the device object and then create a new one.
 </pre>
 </div>
-<div title="comport:status" creator="John Hind" modifier="John Hind" created="201410112052" modified="201410131249" changecount="4">
+<div title="comport:status" creator="John Hind" modifier="John Hind" created="201410112052" modified="201410181013" changecount="5">
 <pre>! ... = comport:status( ... )
 The function is passed a list of status keys (strings) and it returns one status value for each key, in the same order. The following keys should be common to all com port drivers:
 |KEY|TYPE|DESCRIPTION|h
-|'''cts'''|Boolean|State of the CTS input signal|
-|'''dsr'''|Boolean|State of the DSR input signal|
-|'''ri'''|Boolean|State of the Ring Indicator input signal|
-|'''dcd'''|Boolean|State of the DCD input signal|
+|'''cts'''|Boolean|State of the CTS input signal.|
+|'''dsr'''|Boolean|State of the DSR input signal.|
+|'''ri'''|Boolean|State of the Ring Indicator input signal.|
+|'''dcd'''|Boolean|State of the DCD input signal.|
 |'''oe'''|Boolean|Presence of overrun error flag.|
 |'''pe'''|Boolean|Presence of parity error flag.|
 |'''fe'''|Boolean|Presence of framing error flag.|
@@ -7582,20 +7662,20 @@ The function is passed a list of status keys (strings) and it returns one status
 |'''txq'''|Number|Bytes in the transmit queue.|
 The following additional keys are specific to this port type:
 |KEY|TYPE|DESCRIPTION|h
-|'''ctsh'''|Boolean|Transmission held on CTS signal|
-|'''dsrh'''|Boolean|Transmission held on DSR signal|
-|'''dcdh'''|Boolean|Transmission held on DCD signal|
-|'''xoffh'''|Boolean|Transmission held because XOFF received|
-|'''xoffsh'''|Boolean|Transmission held because XOFF sent|
-|'''eof'''|Boolean|End of file marker received|
-|'''im'''|Boolean|Immediate character awaiting transmission|
+|'''ctsh'''|Boolean|Transmission held on CTS signal.|
+|'''dsrh'''|Boolean|Transmission held on DSR signal.|
+|'''dcdh'''|Boolean|Transmission held on DCD signal.|
+|'''xoffh'''|Boolean|Transmission held because XOFF received.|
+|'''xoffsh'''|Boolean|Transmission held because XOFF sent.|
+|'''eof'''|Boolean|End of file marker received.|
+|'''im'''|Boolean|Immediate character awaiting transmission.|
 </pre>
 </div>
-<div title="comport:write" creator="John Hind" modifier="John Hind" created="201407191410" modified="201410112104" changecount="14">
-<pre>!result, step = comport:write( ... )
-Carries out the transmission operations specified by the parameter list. Returns Boolean {{{true}}} if the operations are completed sucessfully, {{{false}}} if there is an error or if an operation aborts or times out. Note that a timeout always prevents execution of further operations (except for the '''dly''' op code). When the return is {{{false}}}, also returns the index of the parameter at which operations were aborted, 1 meaning the first parameter in the call and so on. This method may block execution for up to the total of timeout values in all its op codes.
+<div title="comport:write" creator="John Hind" modifier="John Hind" created="201407191410" modified="201410181024" changecount="19">
+<pre>!result [, step] = port:write( ... )
+Carries out the transmission operations specified by the parameter list. Returns Boolean {{{true}}} if the operations are completed successfully, {{{false}}} if there is an error or if an operation aborts or times out. Note that a timeout always prevents execution of further operations (except for the '''dly''' op code). When the return is {{{false}}}, also returns the index of the parameter at which operations were aborted, 1 meaning the first parameter in the call and so on. This method may block execution for up to the total of timeout values in all its opcodes.
 
-The parameters may be strings or numbers and are actioned left to right in the parameter list. Each byte in a string is transmitted in order left to right. Numbers are interpreted as op codes which should be generated using the [[com.op]] function and the following table:
+The parameters may be strings or numbers and are actioned left to right in the parameter list. Each byte in a string is transmitted in order left to right. Numbers are interpreted as opcodes which should be generated using the {{{op}}} function from the library (see [[com.op]]) and the following table:
 |opname|st|to||h
 |'''dtr'''|Y||Sets or clears the DTR output.|
 |'''rts'''|Y||Sets or clears the RTS output.|
@@ -7607,7 +7687,7 @@ The parameters may be strings or numbers and are actioned left to right in the p
 |'''rxd'''||Y|Wait for some data to be received, abort on timeout.|
 |'''bi'''||Y|Wait for break interrupt, abort on timeout.|
 |'''dly'''||Y|Delays unconditionally for timeout.|
-|'''eab'''|||Abort if a line error has occured.|
+|'''eab'''|||Abort if a line error has occurred.|
 |'''prx'''|||Purge the reception queue (discarding any received data).|
 |'''ptx'''|||Purge the transmission queue (discarding any unsent data).|
 Example:
@@ -7777,14 +7857,14 @@ end
 Returns a table of characterising information about an open port. This is the same table that is returned by the [[ftdi.ports]] iterator for all available ports.
 </pre>
 </div>
-<div title="ftdiport:status" creator="John Hind" modifier="John Hind" created="201407191414" modified="201410131247" changecount="10">
+<div title="ftdiport:status" creator="John Hind" modifier="John Hind" created="201407191414" modified="201410181030" changecount="11">
 <pre>! ... = ftdiport:status( ... )
 The function is passed a list of status keys (strings) and it returns one status value for each key, in the same order. The available keys share the following with [[comport:status]]:
 |KEY|TYPE|DESCRIPTION|h
-|'''cts'''|Boolean|State of the CTS input signal|
-|'''dsr'''|Boolean|State of the DSR input signal|
-|'''ri'''|Boolean|State of the Ring Indicator input signal|
-|'''dcd'''|Boolean|State of the DCD input signal|
+|'''cts'''|Boolean|State of the CTS input signal.|
+|'''dsr'''|Boolean|State of the DSR input signal.|
+|'''ri'''|Boolean|State of the Ring Indicator input signal.|
+|'''dcd'''|Boolean|State of the DCD input signal.|
 |'''oe'''|Boolean|Presence of overrun error flag.|
 |'''pe'''|Boolean|Presence of parity error flag.|
 |'''fe'''|Boolean|Presence of framing error flag.|
@@ -8523,7 +8603,7 @@ winsh.taskicon(&quot;LOCK&quot;, false)
 winsh.balloon(&quot;TITLE OF BALLOON&quot;, &quot;Some text to go in the balloon&quot;, 'info', 10000)
 }}}</pre>
 </div>
-<div title="winsh.environment" creator="John Hind" modifier="John Hind" created="201005302240" modified="201402211655" changecount="5">
+<div title="winsh.environment" creator="John Hind" modifier="John Hind" created="201005302240" modified="201410181001" changecount="10">
 <pre>!res = winsh.environment([string])
 This function has two distinct modes. With no parameter, it returns a table comprising all the environment variables of this Winsh process. This will include all those inherited from Windows plus a number of extra &quot;Winsh specials&quot; added on process initialisation (see below). With a string parameter, any embedded environment variable names are substituted with corresponding values and the resulting string is returned.
 
@@ -8532,11 +8612,12 @@ The following Winsh environment variables are supported in addition to any inher
 ''%~G_COMPUTERNAME%'' - The DNS Physical Hostname of the computer.
 ''%~G_USERNAME%'' - The username of the current user.
 ''%~G_EXEDEV%'' - The device on which this exe file is located in the form '''C:'''.
-''%~G_EXEPATH%'' - The filepath to the exe without device or name but with leading and trailing punctuation e.g. '''\fred\joe\'''.
-''%~G_EXENAME%'' - The filename of the exe without path or extension or separators e.g. '''winsh'''.
-''%~G_LUAEXT%'' - The file extension used for Lua script files, with a leading period e.g. '''.lua'''.
+''%~G_EXEPATH%'' - The path of the folder containing the exe file without device or name but with leading and trailing punctuation e.g. '''\FRED\JOE\'''.
+''%~G_EXENAME%'' - The filename of the exe without path or extension or separators e.g. '''WINSH'''.
+''%~G_LUAEXT%'' - The file extension used for Lua script files, with a leading period e.g. '''.LUA'''.
+''%~G_APPPATH%'' - The full path of the app folder with trailing punctuation. This will be blank unless the script was run from an app folder rather than a file. e.g. '''C:\MYFILES\~APP1\'''.
 
-For example, you could create a filename for a log file alongside the exe file as follows:
+For example:
 {{{
 print(winsh.environment([[%G_EXEDEV%%G_EXEPATH%%G_EXENAME%.log]]))
 for k, v in Table(winsh.environment()) do print(k .. &quot; = &quot; .. v) end
@@ -8579,18 +8660,17 @@ end)
 error(&quot;My Test Error&quot;)
 }}}</pre>
 </div>
-<div title="winsh.loadscript" creator="John Hind" modifier="John Hind" created="201005302254" modified="201402211705" changecount="2">
-<pre>!func = winsh.loadscript(name)
-!r,e  = winsh.loadscript(name)
+<div title="winsh.loadscript" creator="John Hind" modifier="John Hind" created="201005302254" modified="201410161647" changecount="7">
+<pre>!func [,e] = winsh.loadscript(name)
 Low-level function which loads a script from a file or resource returning it as a Lua function. The string parameter ''name'' can be a full file path and name, the name of a resource in the exe file or the name of a file in the same directory as the executable file.
 
-If the file or resource cannot be found, returns two values, r = Boolean false and e = a string error message. If compiling the file or resource results in an error, returns two values, r = nil and e = a string error message.
+If the file or resource cannot be found, or cannot be parsed to a valid Lua function, ''func'' returns {{{nil}}} and a string error message is returned as a second parameter.
 
 Example:
 {{{
 s1,e = winsh.loadscript(&quot;test&quot;)
 if s1 then s1() else print(e) end
-s2,e = winsh.loadscript(&quot;test.gnt&quot;)
+s2,e = winsh.loadscript(&quot;test.lua&quot;)
 if s2 then s2() else print(e) end
 }}}
 </pre>

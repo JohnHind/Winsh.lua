@@ -221,8 +221,11 @@ static int luaB_next (lua_State *L) {
   }
 }
 
-
+#if defined(JH_LUA_ITER)
+int luaB_pairs (lua_State *L) {
+#else
 static int luaB_pairs (lua_State *L) {
+#endif
   return pairsmeta(L, "__pairs", 0, luaB_next);
 }
 

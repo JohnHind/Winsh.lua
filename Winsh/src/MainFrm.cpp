@@ -35,19 +35,12 @@ void CMainFrame::SetLibraryPaths()
 	// loaded into the Lua environment on demand using a 'require' statement).
 	lua_State* L = *m_lua;
 	CString x1; CString x2;
-	if (LibPath.GetLength() > 0)
+	if (LibPath.PathIsDirectory())
 	{
-		x1 = LibPath + CString("?") + LuaExt;
+		x1 = LibPath + CString("\\?") + LuaExt;
 		if (LuaExt != CString(".LUA"))
-			x1 = x1 + CString(";") + LibPath + CString("?.LUA");
-		x2 = LibPath + CString("?.DLL");
-	}
-	else if (ExePath.GetLength() > 0)
-	{
-		x1 = ExePath + CString("?") + LuaExt;
-		if (LuaExt != CString(".LUA"))
-			x1 = x1 + CString(";") + ExePath + CString("?.LUA");
-		x2 = ExePath + CString("?.DLL");
+			x1 = x1 + CString(";") + LibPath + CString("\\?.LUA");
+		x2 = LibPath + CString("\\?.DLL");
 	}
 	lua_getglobal(L, "package");
 	luaX_pushstring(L, x1);
@@ -74,14 +67,14 @@ void UnQuote(CString& x)
 void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocmd /*= FALSE*/, BOOL nofile /*= FALSE*/)
 {
 	lua_State* L = *m_lua;
-	int n; CString x; CString y; BOOL er = FALSE; int r;
+	int n; CPathString x; CPathString y; BOOL er = FALSE; int r;
 	CString slb = CString(""); CString sla = CString("");
-	int sp = 0; BOOL im = FALSE; BOOL op = TRUE; BOOL vr = FALSE;
+	int sp = 0; BOOL im = FALSE; BOOL op = TRUE; BOOL vr = FALSE; BOOL ad = FALSE;
 	CString em;
 	LPWSTR* c = CommandLineToArgvW(cmd, &n);
 	if (n > 1)
 	{	// Parse the command line collecting script texts, marking the position of
-		// the script name, and registering presence of -i and -v parameters.
+		// the script name, and registering presence of -i, -v  and -a parameters.
 		for (int i = 1; (i < n); i++)
 		{
 			x = CString(c[i]); UnQuote(x);
@@ -125,6 +118,10 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 						if (x.GetLength() > 2) er = TRUE;
 						vr = TRUE;
 						break;
+					case 'a':
+						if (x.GetLength() > 2) er = TRUE;
+						ad = TRUE;
+						break;
 					case '-':
 						if (x.GetLength() > 2) er = TRUE;
 						op = FALSE;
@@ -145,7 +142,7 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 			}
 		}
 	}
-	LibPath = CString("");
+	LibPath = CPathString("");
 	r = LUA_ERRFILE;
 	if (er)
 	{
@@ -158,7 +155,7 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 		{	// There is a script name in the command line. We try to load the script
 			// onto the stack, r will be 0 if we succeed.
 			lua_checkstack(L, 2);
-			x = CString(c[sp]); UnQuote(x);
+			x = CPathString(c[sp]); x.MakeUpper();  UnQuote(x);
 			if (x.FindOneOf(TEXT(":.\\")) < 0) r = LoadScriptResource(x);
 			if (r == LUA_ERRFILE)
 			{	// Not a resource, try file:
@@ -171,11 +168,10 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 				else
 				{
 					r = 0;
-					y = CString(PathFindExtension(x)); y.MakeUpper();
+					y = x.PathFindExtension(); y.MakeUpper();
 					if (y.GetLength() < 1)
 					{	// Add default extension if extension is absent
-						PathAddExtension(x.GetBuffer(MAX_PATH), LuaExt);
-						x.ReleaseBuffer();
+						x.PathAddExtension(LuaExt);
 					}
 					else if (y != LuaExt)
 					{	// Fail if wrong extension
@@ -185,19 +181,17 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 					}
 					if (r == 0)
 					{
-						if (PathIsFileSpec(x))
-						{	// Prefix exe path if there is no path
-							y = x; x = ExePath;
-							PathAppend(x.GetBuffer(MAX_PATH), y);
-							x.ReleaseBuffer();
-						}
-						if (PathIsDirectory(x))
+						if (x.PathIsFileSpec()) x.PathCombine(ExePath); // Prefix exe path if there is no path
+						if (x.PathIsDirectory())
 						{	// If it is a folder, use init file in that folder
-							LibPath = x + CString("\\");
-							PathAppend(x.GetBuffer(MAX_PATH), InitName); x.ReleaseBuffer();
-							PathAddExtension(x.GetBuffer(MAX_PATH), LuaExt); x.ReleaseBuffer();
+							ad = TRUE;
+							x.PathAppend(InitName); x.PathAddExtension(LuaExt);
 						}
-						r = LoadScriptFile(x);
+						if (x.PathFileExists()) {
+							r = LoadScriptFile(x);
+							if (ad) x.PathRemoveFileSpec(); // LibPath is folder if -a flag or app folder on command line
+							LibPath = x;
+						}
 					}
 				}
 			}
@@ -211,25 +205,26 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 				if (!nofile)
 				{
 					x = ExePath;
-					PathAppend(x.GetBuffer(MAX_PATH), ExeName); x.ReleaseBuffer();
-					PathAddExtension(x.GetBuffer(MAX_PATH), LuaExt); x.ReleaseBuffer();
-					if (PathIsDirectory(x))
+					x.PathAppend(ExeName); x.PathAddExtension(LuaExt);
+					LibPath = x;
+					if (x.PathIsDirectory())
 					{	// If it is a folder, use init file in that folder
-						LibPath = x + CString("\\");
-						PathAppend(x.GetBuffer(MAX_PATH), InitName); x.ReleaseBuffer();
-						PathAddExtension(x.GetBuffer(MAX_PATH), LuaExt); x.ReleaseBuffer();
+						x.PathAppend(InitName); x.PathAddExtension(LuaExt);
 					}
-					r = LoadScriptFile(x);
+					if (x.PathFileExists())
+						r = LoadScriptFile(x);
+					else
+					    LibPath = CPathString("");
 				}
 			}
 		}
 		if ((r != 0) && (r != LUA_ERRFILE))
-		{
-			// Report any error when loading script file or resource.
+		{   // Report any error when loading script file or resource.
 			er = TRUE;
 			em = CString(lua_tostring(L, -1));
 		}
 		if ((r != 0) && (sla.GetLength() == 0)) im = TRUE;
+		LibPath.MakeUpper();
 		SetLibraryPaths();
 		if ((slb.GetLength() > 0) && (!nocmd))
 		{	// If we have -l text, execute it leaving the main chunk (if any) under it.
@@ -307,8 +302,13 @@ void CMainFrame::ExecCommandLine(CString& cmd, BOOL nodef /*= FALSE*/, BOOL nocm
 				}
 				lua_pop(L, 1);
 			}
+			else
+			{
+				er = TRUE;
+				em = CString("Too many parameters to script.");
+			}
 		}
-		if ((sla.GetLength() > 0) && (!nocmd))
+		if ((sla.GetLength() > 0) && (!nocmd) && (!er))
 		{	// If we have -e text, execute it.
 			lua_checkstack(L, 2);
 			SetRunning();
@@ -569,17 +569,24 @@ void CMainFrame::GoLine(int line)
 
 BOOL CMainFrame::EditScript(LPCTSTR nm)
 {
-	CPathString y(nm); 
-	if (LoadResource(nm)) return TRUE;
-	if (y.Left(1) == CString("\\")) {
-		y = CPathString(ExePath);
-		y.PathAppend(CString(nm));
-	} else {
-		y.PathRemoveExtension();
-		y = m_cmd->FindLuaLib(y);
+	CPathString y(nm); CPathString x;
+	if (LoadResource(y)) return TRUE;
+	x = y.PathFindExtension();
+	if (x.GetLength() > 0) {
+		x.MakeUpper();
+		if ((x == LuaExt) || (x == CString(".LUA"))) y.PathRemoveExtension();
 	}
-	if (y.GetLength() <= 0) return FALSE;
-    return LoadFile(y);
+	y.MakeUpper(); if (y[0] == '\\') y = y.Mid(1);
+	if (y.GetLength() < 1) return FALSE;
+	if (LibPath.PathIsDirectory()) {
+		y = m_cmd->FindLuaLib(y);
+		if (y.GetLength() > 0) return LoadFile(y);
+	} else {
+		x = LibPath.PathFindFileName();
+		x.MakeUpper(); x.PathRemoveExtension();
+		if (x == y) return LoadFile(LibPath);
+	}
+	return FALSE;
 }
 
 void CMainFrame::EvaluateSelection()
@@ -716,12 +723,14 @@ void CMainFrame::CheckEditStatus()
 BOOL CMainFrame::LoadFile(LPCTSTR name)
 {
 	HANDLE h; BYTE buf[256]; DWORD n; LARGE_INTEGER fs; BOOL revert = FALSE;
-	CPathString fn(name);
+	CPathString fn(name); CPathString ex;
 
-	CheckEditStatus();
 
 	if (!fn.PathFileExists()) return FALSE;
+	ex = fn.PathFindExtension(); ex.MakeUpper();
+	if ((ex != LuaExt) && (ex != CString(".LUA"))) return FALSE;
 
+	CheckEditStatus();
 	if (m_FD && (m_FN == CString(name)))
 	{
 		if (MessageBox(_T("Revert to the disk file losing the changes in the lower pane?"),
@@ -1618,24 +1627,70 @@ int CMainFrame::ExecChunk(int parms, LPCTSTR context)
 	return r;
 }
 
-static void ReadInventoryFile(lua_State* L, LPCTSTR fn)
+static void ReadInventoryFile(lua_State* L, LPCTSTR fn, LPCTSTR pfx = NULL)
 {
 	CPathString p(fn); CString lb;
-	HANDLE hFile = INVALID_HANDLE_VALUE; BYTE buf[40]; DWORD n;
+	HANDLE hFile = INVALID_HANDLE_VALUE; BYTE buf[81]; DWORD n;
 	if (!p.PathIsDirectory() && p.PathFileExists()) {
 		hFile = CreateFile(p, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (hFile != INVALID_HANDLE_VALUE) {
-			::ReadFile(hFile, &buf, 40, &n, NULL);
+			::ReadFile(hFile, &buf, 80, &n, NULL);
 			CloseHandle(hFile);
 			buf[n] = 0; lb = CString(buf);
-			if (lb.Left(2) == CString("--")) lb = lb.Mid(2); else lb = CString("[Unlabeled]");
-			n = lb.FindOneOf(TEXT("\n\r")); if (n < 40) lb = lb.Left(n);
+			if (lb.Left(2) == CString("--")) lb = lb.Mid(2); else lb = CString("[Lua Script]");
+			n = lb.FindOneOf(TEXT("\n\r")); if (n < 80) lb = lb.Left(n);
 			lb.TrimLeft(); lb.TrimRight();
 		}
 		p.PathStripPath(); p.PathRemoveExtension();
-		luaX_pushstring(L, p);
+		luaX_pushstring(L, pfx + p);
 		luaX_pushstring(L, lb);
 		lua_settable(L, -3);
+	}
+}
+
+static void ReadInventoryFolder(lua_State* L, LPCTSTR path, LPCTSTR lex, LPCTSTR pfx = NULL)
+{
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	WIN32_FIND_DATA ffd;
+	CPathString p(path);
+	CPathString pf(pfx);
+	p.PathAppend(CString("*")); p.PathAddExtension(CString(lex));
+	hFind = FindFirstFile(p, &ffd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			p = CPathString(path);
+			p.PathAppend(CString(ffd.cFileName));
+			ReadInventoryFile(L, p, pf);
+		} while (FindNextFile(hFind, &ffd) != 0);
+		FindClose(hFind);
+	}
+	p = CPathString(path);
+	p.PathAppend(CString("*.DLL"));
+	hFind = FindFirstFile(p, &ffd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			p = CPathString(ffd.cFileName);
+			p.PathStripPath(); p.PathRemoveExtension();
+			luaX_pushstring(L, pfx + p);
+			luaX_pushstring(L, CString("[DLL Library]"));
+			lua_settable(L, -3);
+		} while (FindNextFile(hFind, &ffd) != 0);
+		FindClose(hFind);
+	}
+	p = CPathString(path);
+	p.PathAppend(CString("*.*"));
+	hFind = FindFirstFile(p, &ffd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			if ((ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) > 0) {
+				p = CPathString(ffd.cFileName);
+				if (p.GetAt(0) != '.') {
+					p.PathCombine(CString(path));
+					ReadInventoryFolder(L, p, lex, pf + CString(ffd.cFileName) + CString("."));
+				}
+			}
+		} while (FindNextFile(hFind, &ffd) != 0);
+		FindClose(hFind);
 	}
 }
 
@@ -1643,26 +1698,13 @@ int CMainFrame::GetInventory(int type)
 {
 	if (type == INV_KEY_FIL) {
 		HANDLE hFind = INVALID_HANDLE_VALUE;
-		WIN32_FIND_DATA ffd;
 		lua_State* L = *m_lua;
-		CPathString p(ExePath);
-		p.PathAppend(ExeName);
-		p = p + LuaExt;
 		lua_newtable(L);
-		ReadInventoryFile(L, p);
-		if (LibPath.GetLength() > 0) {
-			p = CPathString(LibPath);
-			p.PathAppend(CString("*"));
-			p = p + LuaExt;
-			hFind = FindFirstFile(p, &ffd);
-			if (hFind != INVALID_HANDLE_VALUE) {
-				do {
-					p = CPathString(LibPath);
-					p.PathAppend(CString(ffd.cFileName));
-					ReadInventoryFile(L, p);
-				} while (FindNextFile(hFind, &ffd) != 0);
-				FindClose(hFind);
-			}
+		CPathString p;
+		if (LibPath.PathIsDirectory()) {
+			ReadInventoryFolder(L, LibPath, LuaExt);
+		} else {
+			ReadInventoryFile(L, LibPath);
 		}
 		return 1;
 	} else {
