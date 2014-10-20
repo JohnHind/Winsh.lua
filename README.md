@@ -14,7 +14,7 @@ Packing options are designed to avoid the need for installation and to be locati
 
 A runtime package containing several alternative pre-built binaries and documentation can be downloaded here:
 
-https://github.com/JohnHind/Winsh.lua/releases/tag/2.2.2
+https://github.com/JohnHind/Winsh.lua/releases/latest
 
 ##Building
 
